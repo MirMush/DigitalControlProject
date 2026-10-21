@@ -51,6 +51,7 @@ void Logger::printHeader(
   Serial.println("% 20 forward velocity (m/s)");
   Serial.println("% 21 turn rate (rad/s)");
   Serial.println("% 22 desired angular velocity (rad/s)");
+  Serial.println("% 23 turn-rate controller output (rad/s)");
 }
 
 void Logger::printRow(const LogData &d)
@@ -77,6 +78,7 @@ void Logger::printRow(const LogData &d)
   Serial.print(" "); Serial.print(d.forwardVel, 2);
   Serial.print(" "); Serial.print(d.turnRate, 2);
   Serial.print(" "); Serial.print(d.desiredAngularVelocity, 2);
+  Serial.print(" "); Serial.print(d.turnRateCommand, 2);
   Serial.println();
 }
 

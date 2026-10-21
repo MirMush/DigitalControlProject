@@ -7,7 +7,11 @@
 class TurnRateController : public Controller
 {
 public:
-  TurnRateController(float proportionalGain, float integralTime, float sampleTime);
+  TurnRateController(
+      float proportionalGain,
+      float integralTime,
+      float maximumTurnRate,
+      float sampleTime);
 
   float update(float desiredTurnRate, float measuredTurnRate);
   void reset() override;
@@ -15,6 +19,7 @@ public:
 private:
   float proportionalGain;
   float integralGain;
+  float maximumTurnRate;
   Integrator errorIntegrator;
 };
 

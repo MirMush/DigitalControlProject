@@ -17,10 +17,10 @@ constexpr float speedProportionalGain = 0.1202f;
 constexpr float speedIntegralTime = 0.0685f;
 constexpr float turnRateProportionalGain = 5.0f;
 constexpr float turnRateIntegralTime = 0.2f;
+constexpr float turnRateMaximumOutput = 0.5f;
 
-constexpr float missionCruiseVelocity = 0.40f;
+constexpr float missionCruiseVelocity = 0.20f;
 constexpr float missionLinearAcceleration = 0.2f;
-constexpr float missionCircleDiameter = 1.0f;
 }
 
 #endif

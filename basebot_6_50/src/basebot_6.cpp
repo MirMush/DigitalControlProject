@@ -58,13 +58,14 @@ SpeedController speedController(
 TurnRateController turnRateController(
     RobotConfig::turnRateProportionalGain,
     RobotConfig::turnRateIntegralTime,
+    RobotConfig::turnRateMaximumOutput,
     RobotConfig::sampleTimeUs * 1e-6f);
 Mission mission(
     RobotConfig::missionCruiseVelocity,
-    RobotConfig::missionLinearAcceleration,
-    RobotConfig::missionCircleDiameter);
+    RobotConfig::missionLinearAcceleration);
 Logger logger(400000, RobotConfig::logSampleDivider);
 bool velSaturated = false;
+float turnRateCommand = 0.0f;
 
 void printLog()
 {
@@ -117,6 +118,7 @@ void start()
   pose.reset();
   speedController.reset();
   turnRateController.reset();
+  turnRateCommand = 0.0f;
 }
 
 void stop(float after)
@@ -133,6 +135,7 @@ void finished()
   motor.setPWMfrq(80000);
   speedController.reset();
   turnRateController.reset();
+  turnRateCommand = 0.0f;
   // start updating display
   display.useDisplay = true;
   logger.finish();
@@ -150,6 +153,7 @@ void updateLog()
   const MotionReference reference = mission.motionReference();
   sample.desiredValue = reference.linearVelocity;
   sample.desiredAngularVelocity = reference.angularVelocity;
+  sample.turnRateCommand = turnRateCommand;
   sample.motorVolt[0] = -motor.motorVoltage[0];
   sample.motorVolt[1] = motor.motorVoltage[1];
   sample.encoder[0] = -encoder.encoder[0];
@@ -205,9 +209,9 @@ void loop ( void )
       if (mission.waitingForStart() and startSignal)
       {
         start();
-        mission.startCourse(1.0f, time_sec, pose.distance());
+        mission.startStraight(1.0f, time_sec, pose.distance());
       }
-      else if (mission.updateCourse(time_sec, pose.distance()))
+      else if (mission.updateStraight(time_sec, pose.distance()))
         finished();
 
       const int state = mission.state();
@@ -218,8 +222,17 @@ void loop ( void )
              encoder.motorVelocity[1] * RobotConfig::wheelRadius / RobotConfig::gearRatio);
 
         MotionReference reference = mission.motionReference();
-        reference.angularVelocity =
-            turnRateController.update(reference.angularVelocity, pose.turnRate());
+        if (reference.angularVelocity == 0.0f)
+        {
+          turnRateController.reset();
+          turnRateCommand = 0.0f;
+        }
+        else
+        {
+          turnRateCommand =
+              turnRateController.update(reference.angularVelocity, pose.turnRate());
+        }
+        reference.angularVelocity = turnRateCommand;
         const MotorVoltage output = speedController.update(
             reference,
             -encoder.motorVelocity[0],

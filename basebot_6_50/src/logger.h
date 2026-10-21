@@ -10,6 +10,7 @@ struct LogData
   int state;
   float desiredValue;
   float desiredAngularVelocity;
+  float turnRateCommand;
   float desiredHeading;
   float motorVel[2];
   float motorVolt[2];
