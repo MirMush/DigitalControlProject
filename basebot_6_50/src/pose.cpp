@@ -13,16 +13,16 @@ PoseEstimator::PoseEstimator(float sampleTime, float wheelBase, IntegrationMetho
       poseHeading(0.0f),
       traveledDistance(0.0f),
       forwardVel(0.0f),
-      angularVelocity(0.0f)
+      turnRateValue(0.0f)
 {
 }
 
 void PoseEstimator::update(float leftWheelVelocity, float rightWheelVelocity)
 {
   forwardVel = (leftWheelVelocity + rightWheelVelocity) / 2.0f;
-  angularVelocity = (rightWheelVelocity - leftWheelVelocity) / wheelBase;
+  turnRateValue = (rightWheelVelocity - leftWheelVelocity) / wheelBase;
 
-  poseHeading = headingIntegrator.update(angularVelocity);
+  poseHeading = headingIntegrator.update(turnRateValue);
 
   const float xVelocity = forwardVel * cosf(poseHeading);
   const float yVelocity = forwardVel * sinf(poseHeading);
@@ -38,7 +38,7 @@ void PoseEstimator::reset()
   poseHeading = 0.0f;
   traveledDistance = 0.0f;
   forwardVel = 0.0f;
-  angularVelocity = 0.0f;
+  turnRateValue = 0.0f;
 
   headingIntegrator.reset();
   xIntegrator.reset();
@@ -73,5 +73,5 @@ float PoseEstimator::forwardVelocity() const
 
 float PoseEstimator::turnRate() const
 {
-  return angularVelocity;
+  return turnRateValue;
 }

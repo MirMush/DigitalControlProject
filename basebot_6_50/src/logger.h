@@ -9,9 +9,6 @@ struct LogData
   float time;
   int state;
   float desiredValue;
-  float desiredAngularVelocity;
-  float turnRateCommand;
-  float desiredHeading;
   float motorVel[2];
   float motorVolt[2];
   int32_t encoder[2];
@@ -23,14 +20,9 @@ struct LogData
   float distA;
   float forwardVel;
   float turnRate;
-  float inVelLeft;
-  float inVelRight;
   float gyroX;
   float gyroY;
   float gyroZ;
-  float headU;
-  float accVel;
-  float accTurn;
 };
 
 class Logger

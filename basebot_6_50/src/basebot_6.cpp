@@ -39,7 +39,6 @@ void printLog();
 #include "src/uencoder.h"
 #include "pose.h"
 #include "speed_controller.h"
-#include "turn_rate_controller.h"
 #include "logger.h"
 #include "mission.h"
 #include "robot_config.h"
@@ -51,21 +50,9 @@ PoseEstimator pose(RobotConfig::sampleTimeUs * 1e-6f, RobotConfig::wheelBase);
 SpeedController speedController(
     RobotConfig::gearRatio,
     RobotConfig::wheelRadius,
-    RobotConfig::wheelBase,
-    RobotConfig::speedProportionalGain,
-    RobotConfig::speedIntegralTime,
-    RobotConfig::sampleTimeUs * 1e-6f);
-TurnRateController turnRateController(
-    RobotConfig::turnRateProportionalGain,
-    RobotConfig::turnRateIntegralTime,
-    RobotConfig::turnRateMaximumOutput,
-    RobotConfig::sampleTimeUs * 1e-6f);
-Mission mission(
-    RobotConfig::missionCruiseVelocity,
-    RobotConfig::missionLinearAcceleration);
+    RobotConfig::speedProportionalGain);
+Mission mission(RobotConfig::missionCruiseVelocity);
 Logger logger(400000, RobotConfig::logSampleDivider);
-bool velSaturated = false;
-float turnRateCommand = 0.0f;
 
 void printLog()
 {
@@ -93,9 +80,6 @@ void timerInterrupt()
   isSampleTime = true;
   time_sec += RobotConfig::sampleTimeUs / 1e6f;
 }
-/**
- * declaration, that there is a reset function */
-void reset();
 
 void start()
 { // Start timing
@@ -116,9 +100,6 @@ void start()
   // so, disable during sequence.
   display.useDisplay = false;
   pose.reset();
-  speedController.reset();
-  turnRateController.reset();
-  turnRateCommand = 0.0f;
 }
 
 void stop(float after)
@@ -133,9 +114,6 @@ void finished()
   motor.motorVoltage[1] = 0;  // right motor
   // set default PWM frequency
   motor.setPWMfrq(80000);
-  speedController.reset();
-  turnRateController.reset();
-  turnRateCommand = 0.0f;
   // start updating display
   display.useDisplay = true;
   logger.finish();
@@ -150,10 +128,7 @@ void updateLog()
   LogData sample{};
   sample.time = time_sec;
   sample.state = state;
-  const MotionReference reference = mission.motionReference();
-  sample.desiredValue = reference.linearVelocity;
-  sample.desiredAngularVelocity = reference.angularVelocity;
-  sample.turnRateCommand = turnRateCommand;
+  sample.desiredValue = mission.speedReference();
   sample.motorVolt[0] = -motor.motorVoltage[0];
   sample.motorVolt[1] = motor.motorVoltage[1];
   sample.encoder[0] = -encoder.encoder[0];
@@ -175,6 +150,48 @@ void updateLog()
   logger.record(sample);
 }
 
+void updateMission()
+{
+  const bool startSignal = digitalReadFast(PIN_START_BUTTON) or robot.missionStart;
+  if (mission.waitingForStart() and startSignal)
+  {
+    start();
+    mission.startStraight(RobotConfig::missionDistance, time_sec, pose.distance());
+  }
+  else if (mission.updateStraight(time_sec, pose.distance()))
+  {
+    finished();
+  }
+}
+
+void updatePoseAndSpeedController()
+{
+  if (mission.state() <= 0)
+    return;
+
+  pose.update(
+      -encoder.motorVelocity[0] * RobotConfig::wheelRadius / RobotConfig::gearRatio,
+       encoder.motorVelocity[1] * RobotConfig::wheelRadius / RobotConfig::gearRatio);
+
+  const MotorVoltage output = speedController.update(
+      mission.speedReference(),
+      -encoder.motorVelocity[0],
+      encoder.motorVelocity[1]);
+  motor.motorVoltage[0] = -output.left;
+  motor.motorVoltage[1] = output.right;
+}
+
+void updateControlCycle()
+{
+  imu2.tick();
+  encoder.tick();
+  updateMission();
+  updatePoseAndSpeedController();
+  motor.tick();
+  updateLog();
+  robot.tick();
+  display.tick();
+}
 
 void setup()   // INITIALIZATION
 { // to be able to print to USB interface
@@ -197,58 +214,13 @@ void setup()   // INITIALIZATION
 void loop ( void )
 { // init sample time
   while ( true )
-  { // main loop
-    // loop until time for next sample
-    if (isSampleTime) // start of new control cycle
-    { // time for next tick
+  {
+    if (isSampleTime)
+    {
       isSampleTime = false;
-      // read sensors
-      imu2.tick();
-      encoder.tick();
-      const bool startSignal = digitalReadFast(PIN_START_BUTTON) or robot.missionStart;
-      if (mission.waitingForStart() and startSignal)
-      {
-        start();
-        mission.startStraight(1.0f, time_sec, pose.distance());
-      }
-      else if (mission.updateStraight(time_sec, pose.distance()))
-        finished();
-
-      const int state = mission.state();
-      if (state > 0)
-      { // Only if started
-        pose.update(
-            -encoder.motorVelocity[0] * RobotConfig::wheelRadius / RobotConfig::gearRatio,
-             encoder.motorVelocity[1] * RobotConfig::wheelRadius / RobotConfig::gearRatio);
-
-        MotionReference reference = mission.motionReference();
-        if (reference.angularVelocity == 0.0f)
-        {
-          turnRateController.reset();
-          turnRateCommand = 0.0f;
-        }
-        else
-        {
-          turnRateCommand =
-              turnRateController.update(reference.angularVelocity, pose.turnRate());
-        }
-        reference.angularVelocity = turnRateCommand;
-        const MotorVoltage output = speedController.update(
-            reference,
-            -encoder.motorVelocity[0],
-            encoder.motorVelocity[1]);
-        motor.motorVoltage[0] = -output.left;
-        motor.motorVoltage[1] = output.right;
-      }
-      // give value to actuators
-      motor.tick();
-      // save relevant values
-      updateLog();
-      // support functions
-      robot.tick();   // measure battery voltage etc.
-      display.tick(); // update O-LED display
+      updateControlCycle();
     }
-    usb.tick(); // listen to incoming from USB
+    usb.tick();
   }
 }
 

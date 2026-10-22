@@ -33,7 +33,7 @@ private:
   float poseHeading;
   float traveledDistance;
   float forwardVel;
-  float angularVelocity;
+  float turnRateValue;
 };
 
 #endif

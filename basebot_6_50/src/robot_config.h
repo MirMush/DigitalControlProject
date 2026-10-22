@@ -14,13 +14,9 @@ constexpr float wheelRadius = 0.0315f;
 constexpr float wheelBase = 0.15f;
 
 constexpr float speedProportionalGain = 0.1202f;
-constexpr float speedIntegralTime = 0.0685f;
-constexpr float turnRateProportionalGain = 5.0f;
-constexpr float turnRateIntegralTime = 0.2f;
-constexpr float turnRateMaximumOutput = 0.5f;
 
+constexpr float missionDistance = 1.0f;
 constexpr float missionCruiseVelocity = 0.20f;
-constexpr float missionLinearAcceleration = 0.2f;
 }
 
 #endif
