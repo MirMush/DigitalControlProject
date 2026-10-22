@@ -164,7 +164,7 @@ void updateMission()
   }
 }
 
-void updatePoseAndSpeedController()
+void updateMotionControl()
 {
   if (mission.state() <= 0)
     return;
@@ -186,7 +186,7 @@ void updateControlCycle()
   imu2.tick();
   encoder.tick();
   updateMission();
-  updatePoseAndSpeedController();
+  updateMotionControl();
   motor.tick();
   updateLog();
   robot.tick();
