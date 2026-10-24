@@ -172,20 +172,27 @@ void updateMotionControl()
       -encoder.motorVelocity[0] * RobotConfig::wheelRadius / RobotConfig::gearRatio,
        encoder.motorVelocity[1] * RobotConfig::wheelRadius / RobotConfig::gearRatio);
 
-  if (RobotConfig::controlMode == RobotConfig::ControlMode::OpenLoop)
+  MotorVoltage output{};
+  switch (RobotConfig::controlMode)
   {
-    const float voltage = mission.state() == Mission::State::Driving
-                              ? RobotConfig::openLoopMotorVoltage
-                              : 0.0f;
-    motor.motorVoltage[0] = -voltage;
-    motor.motorVoltage[1] = voltage;
-    return;
+    case RobotConfig::ControlMode::OpenLoop:
+    {
+      output.left = mission.state() == Mission::State::Driving
+                        ? RobotConfig::openLoopMotorVoltage
+                        : 0.0f;
+      output.right = output.left;
+      break;
+    }
+    case RobotConfig::ControlMode::ClosedLoop:
+    {
+      output = speedController.update(
+          mission.speedReference(),
+          -encoder.motorVelocity[0],
+          encoder.motorVelocity[1]);
+      break;
+    }
   }
 
-  const MotorVoltage output = speedController.update(
-      mission.speedReference(),
-      -encoder.motorVelocity[0],
-      encoder.motorVelocity[1]);
   motor.motorVoltage[0] = -output.left;
   motor.motorVoltage[1] = output.right;
 }
