@@ -5,6 +5,14 @@
 
 namespace RobotConfig
 {
+enum class ControlMode
+{
+  OpenLoop,
+  ClosedLoop
+};
+
+constexpr ControlMode controlMode = ControlMode::OpenLoop;
+
 constexpr uint32_t sampleTimeUs = 1000;
 constexpr uint32_t logIntervalUs = 10000;
 constexpr int logSampleDivider = logIntervalUs / sampleTimeUs;
@@ -17,6 +25,7 @@ constexpr float speedProportionalGain = 0.1202f;
 
 constexpr float missionDistance = 1.0f;
 constexpr float missionCruiseVelocity = 0.20f;
+constexpr float openLoopMotorVoltage = 1.0f;
 }
 
 #endif

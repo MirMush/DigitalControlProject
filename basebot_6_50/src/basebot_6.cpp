@@ -121,13 +121,12 @@ void finished()
 
 void updateLog()
 {
-  const int state = mission.state();
-  if (!logger.shouldLog(state > 0))
+  if (!logger.shouldLog(mission.isActive()))
     return;
 
   LogData sample{};
   sample.time = time_sec;
-  sample.state = state;
+  sample.state = static_cast<int>(mission.state());
   sample.desiredValue = mission.speedReference();
   sample.motorVolt[0] = -motor.motorVoltage[0];
   sample.motorVolt[1] = motor.motorVoltage[1];
@@ -166,12 +165,22 @@ void updateMission()
 
 void updateMotionControl()
 {
-  if (mission.state() <= 0)
+  if (!mission.isActive())
     return;
 
   pose.update(
       -encoder.motorVelocity[0] * RobotConfig::wheelRadius / RobotConfig::gearRatio,
        encoder.motorVelocity[1] * RobotConfig::wheelRadius / RobotConfig::gearRatio);
+
+  if (RobotConfig::controlMode == RobotConfig::ControlMode::OpenLoop)
+  {
+    const float voltage = mission.state() == Mission::State::Driving
+                              ? RobotConfig::openLoopMotorVoltage
+                              : 0.0f;
+    motor.motorVoltage[0] = -voltage;
+    motor.motorVoltage[1] = voltage;
+    return;
+  }
 
   const MotorVoltage output = speedController.update(
       mission.speedReference(),

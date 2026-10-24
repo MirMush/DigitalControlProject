@@ -1,7 +1,7 @@
 #include "mission.h"
 
 Mission::Mission(float cruiseVelocity)
-    : currentState(0),
+    : currentState(State::Waiting),
       endTime(0.0f),
       targetDistance(0.0f),
       startDistance(0.0f),
@@ -12,7 +12,12 @@ Mission::Mission(float cruiseVelocity)
 
 bool Mission::waitingForStart() const
 {
-  return currentState == 0;
+  return currentState == State::Waiting;
+}
+
+bool Mission::isActive() const
+{
+  return currentState != State::Waiting;
 }
 
 void Mission::startStraight(float distance, float currentTime, float traveledDistance)
@@ -21,22 +26,25 @@ void Mission::startStraight(float distance, float currentTime, float traveledDis
   startDistance = traveledDistance;
   reference = 0.0f;
   endTime = currentTime + 0.020f;
-  currentState = 10;
+  currentState = State::StartDelay;
 }
 
 bool Mission::updateStraight(float currentTime, float traveledDistance)
 {
   switch (currentState)
   {
-    case 10:
+    case State::Waiting:
+      break;
+
+    case State::StartDelay:
       if (currentTime > endTime)
       {
         endTime = currentTime + targetDistance / cruiseVelocity + 3.0f;
-        currentState = 11;
+        currentState = State::Driving;
       }
       break;
 
-    case 11:
+    case State::Driving:
     {
       const float measuredProgress = traveledDistance - startDistance;
       const float progress = measuredProgress > 0.0f ? measuredProgress : 0.0f;
@@ -44,7 +52,7 @@ bool Mission::updateStraight(float currentTime, float traveledDistance)
       {
         reference = 0.0f;
         endTime = currentTime + 0.3f;
-        currentState = 12;
+        currentState = State::Finishing;
       }
       else
       {
@@ -53,18 +61,18 @@ bool Mission::updateStraight(float currentTime, float traveledDistance)
       break;
     }
 
-    case 12:
+    case State::Finishing:
       if (currentTime > endTime)
       {
-        currentState = 0;
+        currentState = State::Waiting;
         return true;
       }
       break;
 
-    case 2:
+    case State::Stopping:
       if (currentTime > endTime)
       {
-        currentState = 0;
+        currentState = State::Waiting;
         return true;
       }
       break;
@@ -77,10 +85,10 @@ void Mission::stop(float currentTime, float delay)
 {
   reference = 0.0f;
   endTime = currentTime + delay;
-  currentState = 2;
+  currentState = State::Stopping;
 }
 
-int Mission::state() const
+Mission::State Mission::state() const
 {
   return currentState;
 }
