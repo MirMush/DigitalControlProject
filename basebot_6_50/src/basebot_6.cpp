@@ -39,6 +39,7 @@ void printLog();
 #include "src/uencoder.h"
 #include "pose.h"
 #include "speed_controller.h"
+#include "turn_rate_controller.h"
 #include "logger.h"
 #include "mission.h"
 #include "robot_config.h"
@@ -47,13 +48,17 @@ void printLog();
 /**
  * Global variables */
 // pose values
-PoseEstimator pose(RobotConfig::sampleTimeUs * 1e-6f, RobotConfig::wheelBase);
+PoseEstimator pose(RobotConfig::sampleTimeSeconds, RobotConfig::wheelBase);
 SpeedController speedController(
     RobotConfig::gearRatio,
     RobotConfig::wheelRadius,
     RobotConfig::speedProportionalGain,
     RobotConfig::speedIntegralGain,
-    RobotConfig::sampleTimeUs * 1e-6f);
+    RobotConfig::sampleTimeSeconds);
+TurnRateController turnRateController(
+    RobotConfig::turnRateProportionalGain,
+    RobotConfig::turnRateIntegralGain,
+    RobotConfig::sampleTimeSeconds);
 Mission mission(RobotConfig::missionCruiseVelocity);
 Logger logger(400000, RobotConfig::logSampleDivider);
 VelocityFilter motorVelocityFilter[2] = {
@@ -84,7 +89,7 @@ IntervalTimer sampleTimer;
 void timerInterrupt()
 {
   isSampleTime = true;
-  time_sec += RobotConfig::sampleTimeUs / 1e6f;
+  time_sec += RobotConfig::sampleTimeSeconds;
 }
 
 void start()
@@ -107,6 +112,7 @@ void start()
   display.useDisplay = false;
   pose.reset();
   speedController.reset();
+  turnRateController.reset();
   motorVelocityFilter[0].reset(encoder.motorVelocity[0]);
   motorVelocityFilter[1].reset(encoder.motorVelocity[1]);
 }
@@ -196,8 +202,14 @@ void updateMotionControl()
     }
     case RobotConfig::ControlMode::ClosedLoop:
     {
+      const float turnRateCorrection = turnRateController.update(
+          RobotConfig::turnRateReference,
+          pose.turnRate());
+      const float wheelSpeedOffset =
+          turnRateCorrection * RobotConfig::wheelBase / 2.0f;
       output = speedController.update(
-          mission.speedReference(),
+          mission.speedReference() - wheelSpeedOffset,
+          mission.speedReference() + wheelSpeedOffset,
           -motorVelocityFilter[0].value(),
           motorVelocityFilter[1].value());
       break;

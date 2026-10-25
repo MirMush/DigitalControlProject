@@ -53,14 +53,16 @@ SpeedController::SpeedController(
 }
 
 MotorVoltage SpeedController::update(
-    float desiredSpeed,
+    float desiredLeftSpeed,
+    float desiredRightSpeed,
     float measuredLeftAngularSpeed,
     float measuredRightAngularSpeed)
 {
-  const float referenceMotorSpeed = motorRadiansPerMeter * desiredSpeed;
+  const float leftReferenceMotorSpeed = motorRadiansPerMeter * desiredLeftSpeed;
+  const float rightReferenceMotorSpeed = motorRadiansPerMeter * desiredRightSpeed;
 
-  const float leftError = referenceMotorSpeed - measuredLeftAngularSpeed;
-  const float rightError = referenceMotorSpeed - measuredRightAngularSpeed;
+  const float leftError = leftReferenceMotorSpeed - measuredLeftAngularSpeed;
+  const float rightError = rightReferenceMotorSpeed - measuredRightAngularSpeed;
 
   MotorVoltage output = {
       clampMotorVoltage(updatePIOutput(leftError, Kp, Ki, leftErrorIntegrator)),

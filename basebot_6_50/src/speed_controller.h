@@ -20,7 +20,8 @@ public:
       float sampleTime);
 
   MotorVoltage update(
-      float desiredSpeed,
+      float desiredLeftSpeed,
+      float desiredRightSpeed,
       float measuredLeftAngularSpeed,
       float measuredRightAngularSpeed);
 
