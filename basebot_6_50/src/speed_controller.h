@@ -13,16 +13,22 @@ public:
   SpeedController(
       float gearRatio,
       float wheelRadius,
-      float proportionalGain);
+      float wheelBase,
+      float proportionalGain,
+      float turnRateProportionalGain);
 
   MotorVoltage update(
       float desiredSpeed,
+      float desiredTurnRate,
       float measuredLeftAngularSpeed,
-      float measuredRightAngularSpeed);
+      float measuredRightAngularSpeed,
+      float measuredTurnRate);
 
 private:
   float motorRadiansPerMeter;
+  float halfWheelBase;
   float proportionalGain;
+  float turnRateProportionalGain;
 };
 
 #endif

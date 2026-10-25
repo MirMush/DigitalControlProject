@@ -51,7 +51,9 @@ PoseEstimator pose(RobotConfig::sampleTimeUs * 1e-6f, RobotConfig::wheelBase);
 SpeedController speedController(
     RobotConfig::gearRatio,
     RobotConfig::wheelRadius,
-    RobotConfig::speedProportionalGain);
+    RobotConfig::wheelBase,
+    RobotConfig::speedProportionalGain,
+    RobotConfig::turnRateProportionalGain);
 Mission mission(RobotConfig::missionCruiseVelocity);
 Logger logger(400000, RobotConfig::logSampleDivider);
 VelocityFilter motorVelocityFilter[2] = {
@@ -193,10 +195,16 @@ void updateMotionControl()
     }
     case RobotConfig::ControlMode::ClosedLoop:
     {
+      const float desiredTurnRate =
+          mission.state() == Mission::State::Driving
+              ? RobotConfig::missionTurnRate
+              : 0.0f;
       output = speedController.update(
           mission.speedReference(),
+          desiredTurnRate,
           -motorVelocityFilter[0].value(),
-          motorVelocityFilter[1].value());
+          motorVelocityFilter[1].value(),
+          pose.turnRate());
       break;
     }
   }

@@ -12,6 +12,10 @@ Logger::Logger(size_t bufferBytes, uint32_t sampleDivider)
       sampleCounter(0),
       bufferFullReported(false)
 {
+  if (records == nullptr)
+  {
+    capacity = 0;
+  }
 }
 
 Logger::~Logger()
