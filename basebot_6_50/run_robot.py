@@ -14,7 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 LOGS = ROOT / "logs"
-NOTEBOOKS = (LOGS / "plot.ipynb", LOGS / "plot_wheelsUp1meter.ipynb")
+NOTEBOOKS = (LOGS / "plot.ipynb",)
 JUPYTER = ROOT / ".venv" / "bin" / "jupyter"
 
 
