@@ -172,9 +172,21 @@ void updateMission()
   if (mission.waitingForStart() and startSignal)
   {
     start();
-    mission.startStraight(RobotConfig::missionDistance, time_sec, pose.distance());
+    switch (RobotConfig::missionType)
+    {
+      case RobotConfig::MissionType::Straight:
+        mission.startStraight(RobotConfig::missionDistance, time_sec, pose.distance());
+        break;
+      case RobotConfig::MissionType::ConstantTurn:
+        mission.startConstantTurn(
+            RobotConfig::missionDistance,
+            RobotConfig::missionTurnRate,
+            time_sec,
+            pose.distance());
+        break;
+    }
   }
-  else if (mission.updateStraight(time_sec, pose.distance()))
+  else if (mission.update(time_sec, pose.distance()))
   {
     finished();
   }

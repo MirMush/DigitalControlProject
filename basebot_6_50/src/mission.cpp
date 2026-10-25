@@ -6,6 +6,7 @@ Mission::Mission(float cruiseVelocity)
       targetDistance(0.0f),
       startDistance(0.0f),
       cruiseVelocity(cruiseVelocity),
+      commandedTurnRate(0.0f),
       currentReference{0.0f, 0.0f}
 {
 }
@@ -22,14 +23,29 @@ bool Mission::isActive() const
 
 void Mission::startStraight(float distance, float currentTime, float traveledDistance)
 {
+  begin(distance, 0.0f, currentTime, traveledDistance);
+}
+
+void Mission::startConstantTurn(
+    float distance,
+    float turnRate,
+    float currentTime,
+    float traveledDistance)
+{
+  begin(distance, turnRate, currentTime, traveledDistance);
+}
+
+void Mission::begin(float distance, float turnRate, float currentTime, float traveledDistance)
+{
   targetDistance = distance;
   startDistance = traveledDistance;
+  commandedTurnRate = turnRate;
   currentReference = {0.0f, 0.0f};
   endTime = currentTime + 0.020f;
   currentState = State::StartDelay;
 }
 
-bool Mission::updateStraight(float currentTime, float traveledDistance)
+bool Mission::update(float currentTime, float traveledDistance)
 {
   switch (currentState)
   {
@@ -56,7 +72,7 @@ bool Mission::updateStraight(float currentTime, float traveledDistance)
       }
       else
       {
-        currentReference = {cruiseVelocity, 0.0f};
+        currentReference = {cruiseVelocity, commandedTurnRate};
       }
       break;
     }
