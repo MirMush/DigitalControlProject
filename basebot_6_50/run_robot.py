@@ -55,6 +55,17 @@ def allocate_run_paths(name):
         suffix += 1
 
 
+def allocate_plot_dir(name):
+    stem = safe_stem(name)
+    suffix = 1
+    while True:
+        candidate = stem if suffix == 1 else f"{stem}_{suffix}"
+        plot_dir = LOGS / f"{candidate}_plots"
+        if not plot_dir.exists():
+            return plot_dir
+        suffix += 1
+
+
 def find_run_artifacts(name, logs_dir=LOGS):
     stem = safe_stem(name)
     run_name = re.compile(rf"{re.escape(stem)}(?:_[2-9]|_[1-9][0-9]+)?")
@@ -462,9 +473,14 @@ def run_alpha_sweep(platformio, name, alphas, warmup_s, rmse_tolerance, requeste
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Build, upload, capture one robot run, and export analysis plots."
+        description="Capture robot logs and export analysis plots."
     )
     parser.add_argument("name", nargs="?", help="log name; prompts if omitted")
+    parser.add_argument(
+        "--plot",
+        action="store_true",
+        help="plot an existing log by name instead of building and capturing a run",
+    )
     parser.add_argument("--port", help="USB serial port, e.g. /dev/ttyACM0")
     parser.add_argument(
         "--auto-start",
@@ -487,6 +503,32 @@ def main():
         return delete_run_artifacts(args.name, confirmed=args.yes)
     if args.yes:
         parser.error("--yes can only be used with --delete")
+
+    if args.plot:
+        if not args.name:
+            parser.error("--plot requires a log name")
+        if (
+            args.port
+            or args.auto_start
+            or args.sweep_alpha
+            or args.alphas != DEFAULT_ALPHAS
+            or args.warmup != 0.25
+            or args.rmse_tolerance != 0.05
+        ):
+            parser.error("--plot cannot be combined with capture or sweep options")
+        try:
+            stem = safe_stem(args.name)
+            log_path = LOGS / f"{stem}.log"
+            if not log_path.is_file():
+                raise RuntimeError(f"Log file not found: {log_path}")
+            plot_dir = allocate_plot_dir(stem)
+            image_count = export_notebook_plots(log_path, plot_dir)
+        except (OSError, RuntimeError, subprocess.CalledProcessError, ValueError) as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return 1
+
+        print(f"Exported {image_count} plots to: {plot_dir}")
+        return 0
 
     if args.sweep_alpha:
         if args.auto_start:
