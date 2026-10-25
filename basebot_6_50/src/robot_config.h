@@ -18,7 +18,7 @@ enum class MissionType
 };
 
 constexpr ControlMode controlMode = ControlMode::ClosedLoop;
-constexpr MissionType missionType = MissionType::Straight;
+constexpr MissionType missionType = MissionType::ConstantTurn;
 
 constexpr uint32_t sampleTimeUs = 1000;
 constexpr uint32_t logIntervalUs = 1000;
@@ -35,10 +35,15 @@ constexpr float speedIntegralTimeConstant = 0.0685f;
 constexpr float speedIntegralGain =
     speedProportionalGain / speedIntegralTimeConstant;
     
-constexpr float turnRateProportionalGain = 5.0f;
-constexpr float turnRateIntegralTimeConstant = 0.2f;
+constexpr bool turnRateControlEnabled = true;
+constexpr float turnRateProportionalGain = 1.0f;
+constexpr float turnRateIntegralTimeConstant = 0.1f;
 constexpr float turnRateIntegralGain =
     turnRateProportionalGain / turnRateIntegralTimeConstant;
+
+constexpr float turnRateFilterAlpha = 0.005f;
+constexpr bool turnRateFilterEnabled = true;
+
 #ifndef BASEBOT_FILTER_ALPHA
 #define BASEBOT_FILTER_ALPHA 0.01f
 #endif
@@ -47,7 +52,7 @@ constexpr bool velocityFilterEnabled = true;
 
 constexpr float missionDistance = 1.0f;
 constexpr float missionCruiseVelocity = 0.40f;
-constexpr float missionTurnRate = 0.5f;
+constexpr float missionTurnRate = 3.0f;
 constexpr float openLoopMotorVoltage = 7.0f;
 }
 

@@ -24,6 +24,8 @@ struct LogData
   float gyroX;
   float gyroY;
   float gyroZ;
+  float desiredTurnRate;
+  float rawTurnRate;
 };
 
 class Logger

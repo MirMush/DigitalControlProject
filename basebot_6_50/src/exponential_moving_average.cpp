@@ -1,12 +1,12 @@
-#include "velocity_filter.h"
+#include "exponential_moving_average.h"
 
-VelocityFilter::VelocityFilter(float alpha, bool enabled)
+ExponentialMovingAverage::ExponentialMovingAverage(float alpha, bool enabled)
     : alpha(alpha),
       enabled(enabled)
 {
 }
 
-float VelocityFilter::update(float rawValue)
+float ExponentialMovingAverage::update(float rawValue)
 {
   if (!enabled || !initialized)
     filteredValue = rawValue;
@@ -17,13 +17,13 @@ float VelocityFilter::update(float rawValue)
   return filteredValue;
 }
 
-void VelocityFilter::reset(float value)
+void ExponentialMovingAverage::reset(float value)
 {
   filteredValue = value;
   initialized = true;
 }
 
-float VelocityFilter::value() const
+float ExponentialMovingAverage::value() const
 {
   return filteredValue;
 }

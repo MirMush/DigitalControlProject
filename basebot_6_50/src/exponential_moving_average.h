@@ -1,10 +1,10 @@
-#ifndef VELOCITY_FILTER_H
-#define VELOCITY_FILTER_H
+#ifndef EXPONENTIAL_MOVING_AVERAGE_H
+#define EXPONENTIAL_MOVING_AVERAGE_H
 
-class VelocityFilter
+class ExponentialMovingAverage
 {
 public:
-  VelocityFilter(float alpha, bool enabled);
+  explicit ExponentialMovingAverage(float alpha, bool enabled = true);
 
   float update(float rawValue);
   void reset(float value);
@@ -16,7 +16,5 @@ private:
   bool initialized = false;
   float filteredValue = 0.0f;
 };
-
-extern VelocityFilter motorVelocityFilter[2];
 
 #endif

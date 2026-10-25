@@ -43,12 +43,16 @@ void printLog();
 #include "logger.h"
 #include "mission.h"
 #include "robot_config.h"
-#include "velocity_filter.h"
+#include "exponential_moving_average.h"
 
 /**
  * Global variables */
 // pose values
-PoseEstimator pose(RobotConfig::sampleTimeSeconds, RobotConfig::wheelBase);
+PoseEstimator pose(
+  RobotConfig::sampleTimeSeconds,
+  RobotConfig::wheelBase,
+  RobotConfig::turnRateFilterAlpha,
+  RobotConfig::turnRateFilterEnabled);
 SpeedController speedController(
     RobotConfig::gearRatio,
     RobotConfig::wheelRadius,
@@ -61,9 +65,9 @@ TurnRateController turnRateController(
     RobotConfig::sampleTimeSeconds);
 Mission mission(RobotConfig::missionCruiseVelocity);
 Logger logger(400000, RobotConfig::logSampleDivider);
-VelocityFilter motorVelocityFilter[2] = {
-  VelocityFilter(RobotConfig::velocityFilterAlpha, RobotConfig::velocityFilterEnabled),
-  VelocityFilter(RobotConfig::velocityFilterAlpha, RobotConfig::velocityFilterEnabled)};
+ExponentialMovingAverage motorVelocityFilter[2] = {
+    ExponentialMovingAverage(RobotConfig::velocityFilterAlpha, RobotConfig::velocityFilterEnabled),
+    ExponentialMovingAverage(RobotConfig::velocityFilterAlpha, RobotConfig::velocityFilterEnabled)};
 
 void printLog()
 {
@@ -163,6 +167,8 @@ void updateLog()
   sample.poseY = pose.y();
   sample.heading = pose.heading();
   sample.distA = pose.distance();
+  sample.desiredTurnRate = mission.reference().turnRate;
+  sample.rawTurnRate = pose.rawTurnRate();
   logger.record(sample);
 }
 
@@ -199,7 +205,9 @@ void updateMotionControl()
 
   pose.update(
       -motorVelocityFilter[0].value() * RobotConfig::wheelRadius / RobotConfig::gearRatio,
-       motorVelocityFilter[1].value() * RobotConfig::wheelRadius / RobotConfig::gearRatio);
+       motorVelocityFilter[1].value() * RobotConfig::wheelRadius / RobotConfig::gearRatio,
+      -encoder.motorVelocity[0] * RobotConfig::wheelRadius / RobotConfig::gearRatio,
+       encoder.motorVelocity[1] * RobotConfig::wheelRadius / RobotConfig::gearRatio);
 
   MotorVoltage output{};
   switch (RobotConfig::controlMode)
@@ -215,11 +223,14 @@ void updateMotionControl()
     case RobotConfig::ControlMode::ClosedLoop:
     {
       const MotionReference reference = mission.reference();
-      const float turnRateCorrection = turnRateController.update(
-        reference.turnRate,
-          pose.turnRate());
-      const float wheelSpeedOffset =
-          turnRateCorrection * RobotConfig::wheelBase / 2.0f;
+      float wheelSpeedOffset = 0.0f;
+      if (RobotConfig::turnRateControlEnabled)
+      {
+        const float turnRateCorrection = turnRateController.update(
+            reference.turnRate,
+            pose.turnRate());
+        wheelSpeedOffset = turnRateCorrection * RobotConfig::wheelBase / 2.0f;
+      }
       output = speedController.update(
         reference.forwardSpeed - wheelSpeedOffset,
         reference.forwardSpeed + wheelSpeedOffset,
