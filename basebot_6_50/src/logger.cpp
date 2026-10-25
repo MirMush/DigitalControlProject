@@ -50,6 +50,7 @@ void Logger::printHeader(
   Serial.println("% 19 distance (m)");
   Serial.println("% 20 forward velocity (m/s)");
   Serial.println("% 21 turn rate (rad/s)");
+  Serial.println("% 22-23 filtered motor vel (left, right) (rad/s)");
 }
 
 void Logger::printRow(const LogData &d)
@@ -75,6 +76,8 @@ void Logger::printRow(const LogData &d)
   Serial.print(" "); Serial.print(d.distA, 2);
   Serial.print(" "); Serial.print(d.forwardVel, 2);
   Serial.print(" "); Serial.print(d.turnRate, 2);
+  Serial.print(" "); Serial.print(d.filteredMotorVel[0], 2);
+  Serial.print(" "); Serial.print(d.filteredMotorVel[1], 2);
   Serial.println();
 }
 

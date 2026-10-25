@@ -42,6 +42,7 @@ void printLog();
 #include "logger.h"
 #include "mission.h"
 #include "robot_config.h"
+#include "velocity_filter.h"
 
 /**
  * Global variables */
@@ -53,6 +54,9 @@ SpeedController speedController(
     RobotConfig::speedProportionalGain);
 Mission mission(RobotConfig::missionCruiseVelocity);
 Logger logger(400000, RobotConfig::logSampleDivider);
+VelocityFilter motorVelocityFilter[2] = {
+  VelocityFilter(RobotConfig::velocityFilterAlpha, RobotConfig::velocityFilterEnabled),
+  VelocityFilter(RobotConfig::velocityFilterAlpha, RobotConfig::velocityFilterEnabled)};
 
 void printLog()
 {
@@ -100,6 +104,8 @@ void start()
   // so, disable during sequence.
   display.useDisplay = false;
   pose.reset();
+  motorVelocityFilter[0].reset(encoder.motorVelocity[0]);
+  motorVelocityFilter[1].reset(encoder.motorVelocity[1]);
 }
 
 void stop(float after)
@@ -134,6 +140,8 @@ void updateLog()
   sample.encoder[1] = encoder.encoder[1];
   sample.motorVel[0] = -encoder.motorVelocity[0];
   sample.motorVel[1] = encoder.motorVelocity[1];
+  sample.filteredMotorVel[0] = -motorVelocityFilter[0].value();
+  sample.filteredMotorVel[1] = motorVelocityFilter[1].value();
   sample.battery = robot.batteryVoltage;
   sample.gyroX = imu2.gyro[0];
   sample.gyroY = imu2.gyro[1];
@@ -169,8 +177,8 @@ void updateMotionControl()
     return;
 
   pose.update(
-      -encoder.motorVelocity[0] * RobotConfig::wheelRadius / RobotConfig::gearRatio,
-       encoder.motorVelocity[1] * RobotConfig::wheelRadius / RobotConfig::gearRatio);
+      -motorVelocityFilter[0].value() * RobotConfig::wheelRadius / RobotConfig::gearRatio,
+       motorVelocityFilter[1].value() * RobotConfig::wheelRadius / RobotConfig::gearRatio);
 
   MotorVoltage output{};
   switch (RobotConfig::controlMode)
@@ -187,8 +195,8 @@ void updateMotionControl()
     {
       output = speedController.update(
           mission.speedReference(),
-          -encoder.motorVelocity[0],
-          encoder.motorVelocity[1]);
+          -motorVelocityFilter[0].value(),
+          motorVelocityFilter[1].value());
       break;
     }
   }
@@ -197,10 +205,17 @@ void updateMotionControl()
   motor.motorVoltage[1] = output.right;
 }
 
+void updateVelocityFilter()
+{
+  for (int motorIndex = 0; motorIndex < 2; motorIndex++)
+    motorVelocityFilter[motorIndex].update(encoder.motorVelocity[motorIndex]);
+}
+
 void updateControlCycle()
 {
   imu2.tick();
   encoder.tick();
+  updateVelocityFilter();
   updateMission();
   updateMotionControl();
   motor.tick();
