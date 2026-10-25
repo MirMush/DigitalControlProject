@@ -51,7 +51,9 @@ PoseEstimator pose(RobotConfig::sampleTimeUs * 1e-6f, RobotConfig::wheelBase);
 SpeedController speedController(
     RobotConfig::gearRatio,
     RobotConfig::wheelRadius,
-    RobotConfig::speedProportionalGain);
+    RobotConfig::speedProportionalGain,
+    RobotConfig::speedIntegralGain,
+    RobotConfig::sampleTimeUs * 1e-6f);
 Mission mission(RobotConfig::missionCruiseVelocity);
 Logger logger(400000, RobotConfig::logSampleDivider);
 VelocityFilter motorVelocityFilter[2] = {
@@ -104,6 +106,7 @@ void start()
   // so, disable during sequence.
   display.useDisplay = false;
   pose.reset();
+  speedController.reset();
   motorVelocityFilter[0].reset(encoder.motorVelocity[0]);
   motorVelocityFilter[1].reset(encoder.motorVelocity[1]);
 }

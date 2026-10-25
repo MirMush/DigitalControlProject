@@ -22,7 +22,13 @@ constexpr float wheelRadius = 0.0315f;
 constexpr float wheelBase = 0.15f;
 
 constexpr float speedProportionalGain = 0.1202f;
-constexpr float velocityFilterAlpha = 0.02f;
+constexpr float speedIntegralTimeConstant = 0.0685f;
+constexpr float speedIntegralGain =
+    speedProportionalGain / speedIntegralTimeConstant;
+#ifndef BASEBOT_FILTER_ALPHA
+#define BASEBOT_FILTER_ALPHA 0.01f
+#endif
+constexpr float velocityFilterAlpha = BASEBOT_FILTER_ALPHA;
 constexpr bool velocityFilterEnabled = true;
 
 constexpr float missionDistance = 1.0f;

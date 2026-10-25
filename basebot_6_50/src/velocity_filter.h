@@ -17,4 +17,6 @@ private:
   float filteredValue = 0.0f;
 };
 
+extern VelocityFilter motorVelocityFilter[2];
+
 #endif
