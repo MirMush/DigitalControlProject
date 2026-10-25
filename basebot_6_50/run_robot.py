@@ -133,16 +133,36 @@ def choose_port(requested_port):
     raise RuntimeError("No Teensy USB serial port found. Connect the robot and try again.")
 
 
-def capture_run(port, log_path):
+def capture_run(port, log_path, auto_start=False):
     try:
         serial = importlib.import_module("serial")
     except ImportError as exc:
         raise RuntimeError("PySerial is unavailable in the PlatformIO Python environment.") from exc
 
     print(f"Capturing to {log_path}", flush=True)
-    print("Press the robot start button. Capture ends when the mission completes.", flush=True)
+    if auto_start:
+        print("Auto-start enabled; sending the firmware start command.", flush=True)
+    else:
+        print("Press the robot start button. Capture ends when the mission completes.", flush=True)
     with serial.Serial(port, baudrate=12000000, timeout=1) as connection:
         with log_path.open("x", encoding="utf-8") as output:
+            if auto_start:
+                connection.write(b"start\n")
+                connection.flush()
+                start_deadline = time.monotonic() + 10
+                while time.monotonic() < start_deadline:
+                    chunk = connection.readline()
+                    if not chunk:
+                        continue
+                    line = chunk.decode("utf-8", errors="replace")
+                    print(line, end="", flush=True)
+                    output.write(line)
+                    output.flush()
+                    if "%% starting" in line:
+                        break
+                else:
+                    raise RuntimeError("Robot did not acknowledge the automatic start command.")
+
             while True:
                 chunk = connection.readline()
                 if not chunk:
@@ -229,6 +249,11 @@ def main():
     )
     parser.add_argument("name", nargs="?", help="log name; prompts if omitted")
     parser.add_argument("--port", help="USB serial port, e.g. /dev/ttyACM0")
+    parser.add_argument(
+        "--auto-start",
+        action="store_true",
+        help="start the mission over USB instead of waiting for the physical button",
+    )
     parser.add_argument("--delete", action="store_true", help="delete matching logs and plot folders")
     parser.add_argument("--yes", action="store_true", help="skip the deletion confirmation prompt")
     args = parser.parse_args()
@@ -252,7 +277,7 @@ def main():
         upload_with_retry(platformio)
         port = choose_port(args.port)
         print(f"Using serial port {port}.", flush=True)
-        capture_run(port, log_path)
+        capture_run(port, log_path, auto_start=args.auto_start)
         image_count = export_notebook_plots(log_path, plot_dir)
     except KeyboardInterrupt:
         print(f"\nStopped; any captured data remains at {log_path}.")
