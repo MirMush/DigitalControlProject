@@ -1,6 +1,12 @@
 #ifndef MISSION_H
 #define MISSION_H
 
+struct MotionReference
+{
+  float forwardSpeed;
+  float turnRate;
+};
+
 class Mission
 {
 public:
@@ -21,7 +27,7 @@ public:
   bool updateStraight(float currentTime, float traveledDistance);
   void stop(float currentTime, float delay);
   State state() const;
-  float speedReference() const;
+  MotionReference reference() const;
 
 private:
   State currentState;
@@ -29,7 +35,7 @@ private:
   float targetDistance;
   float startDistance;
   float cruiseVelocity;
-  float reference;
+  MotionReference currentReference;
 };
 
 #endif

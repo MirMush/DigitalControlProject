@@ -6,7 +6,7 @@ Mission::Mission(float cruiseVelocity)
       targetDistance(0.0f),
       startDistance(0.0f),
       cruiseVelocity(cruiseVelocity),
-      reference(0.0f)
+      currentReference{0.0f, 0.0f}
 {
 }
 
@@ -24,7 +24,7 @@ void Mission::startStraight(float distance, float currentTime, float traveledDis
 {
   targetDistance = distance;
   startDistance = traveledDistance;
-  reference = 0.0f;
+  currentReference = {0.0f, 0.0f};
   endTime = currentTime + 0.020f;
   currentState = State::StartDelay;
 }
@@ -50,13 +50,13 @@ bool Mission::updateStraight(float currentTime, float traveledDistance)
       const float progress = measuredProgress > 0.0f ? measuredProgress : 0.0f;
       if (progress >= targetDistance || currentTime > endTime)
       {
-        reference = 0.0f;
+        currentReference = {0.0f, 0.0f};
         endTime = currentTime + 0.3f;
         currentState = State::Finishing;
       }
       else
       {
-        reference = cruiseVelocity;
+        currentReference = {cruiseVelocity, 0.0f};
       }
       break;
     }
@@ -83,7 +83,7 @@ bool Mission::updateStraight(float currentTime, float traveledDistance)
 
 void Mission::stop(float currentTime, float delay)
 {
-  reference = 0.0f;
+  currentReference = {0.0f, 0.0f};
   endTime = currentTime + delay;
   currentState = State::Stopping;
 }
@@ -93,7 +93,7 @@ Mission::State Mission::state() const
   return currentState;
 }
 
-float Mission::speedReference() const
+MotionReference Mission::reference() const
 {
-  return reference;
+  return currentReference;
 }

@@ -142,7 +142,7 @@ void updateLog()
   LogData sample{};
   sample.time = time_sec;
   sample.state = static_cast<int>(mission.state());
-  sample.desiredValue = mission.speedReference();
+  sample.desiredValue = mission.reference().forwardSpeed;
   sample.motorVolt[0] = -motor.motorVoltage[0];
   sample.motorVolt[1] = motor.motorVoltage[1];
   sample.encoder[0] = -encoder.encoder[0];
@@ -202,14 +202,15 @@ void updateMotionControl()
     }
     case RobotConfig::ControlMode::ClosedLoop:
     {
+      const MotionReference reference = mission.reference();
       const float turnRateCorrection = turnRateController.update(
-          RobotConfig::turnRateReference,
+        reference.turnRate,
           pose.turnRate());
       const float wheelSpeedOffset =
           turnRateCorrection * RobotConfig::wheelBase / 2.0f;
       output = speedController.update(
-          mission.speedReference() - wheelSpeedOffset,
-          mission.speedReference() + wheelSpeedOffset,
+        reference.forwardSpeed - wheelSpeedOffset,
+        reference.forwardSpeed + wheelSpeedOffset,
           -motorVelocityFilter[0].value(),
           motorVelocityFilter[1].value());
       break;
