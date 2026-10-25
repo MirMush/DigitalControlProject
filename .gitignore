@@ -1,0 +1,12 @@
+# PlatformIO build and dependency artifacts
+basebot_6_50/.pio/
+
+# Generated PlatformIO VS Code configuration
+basebot_6_50/.vscode/
+
+# Python environments and generated files
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
