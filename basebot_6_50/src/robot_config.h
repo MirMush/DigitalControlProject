@@ -14,7 +14,7 @@ enum class ControlMode
 constexpr ControlMode controlMode = ControlMode::ClosedLoop;
 
 constexpr uint32_t sampleTimeUs = 1000;
-constexpr uint32_t logIntervalUs = 10000;
+constexpr uint32_t logIntervalUs = 1000;
 constexpr int logSampleDivider = logIntervalUs / sampleTimeUs;
 
 constexpr float gearRatio = 9.6f;
@@ -27,7 +27,7 @@ constexpr bool velocityFilterEnabled = true;
 
 constexpr float missionDistance = 1.0f;
 constexpr float missionCruiseVelocity = 0.40f;
-constexpr float openLoopMotorVoltage = 1.0f;
+constexpr float openLoopMotorVoltage = 7.0f;
 }
 
 #endif
