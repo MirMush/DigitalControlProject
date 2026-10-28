@@ -5,34 +5,27 @@
 PoseEstimator::PoseEstimator(
     float sampleTime,
     float wheelBase,
-    float turnRateFilterAlpha,
-    bool turnRateFilterEnabled,
     IntegrationMethod method)
     : headingIntegrator(sampleTime, method),
       xIntegrator(sampleTime, method),
       yIntegrator(sampleTime, method),
       distanceIntegrator(sampleTime, method),
-      turnRateFilter(turnRateFilterAlpha, turnRateFilterEnabled),
       wheelBase(wheelBase),
       poseX(0.0f),
       poseY(0.0f),
       poseHeading(0.0f),
       traveledDistance(0.0f),
       forwardVel(0.0f),
-      rawTurnRateValue(0.0f),
       turnRateValue(0.0f)
 {
 }
 
 void PoseEstimator::update(
     float leftWheelVelocity,
-    float rightWheelVelocity,
-    float rawLeftWheelVelocity,
-    float rawRightWheelVelocity)
+    float rightWheelVelocity)
 {
-  forwardVel = (leftWheelVelocity + rightWheelVelocity) / 2.0f;
-  rawTurnRateValue = (rawRightWheelVelocity - rawLeftWheelVelocity) / wheelBase;
-  turnRateValue = turnRateFilter.update(rawTurnRateValue);
+  forwardVel = (rightWheelVelocity + leftWheelVelocity) / 2.0f;
+  turnRateValue = (rightWheelVelocity - leftWheelVelocity) / wheelBase;
 
   poseHeading = headingIntegrator.update(turnRateValue);
 
@@ -50,10 +43,8 @@ void PoseEstimator::reset()
   poseHeading = 0.0f;
   traveledDistance = 0.0f;
   forwardVel = 0.0f;
-  rawTurnRateValue = 0.0f;
   turnRateValue = 0.0f;
 
-  turnRateFilter.reset(0.0f);
   headingIntegrator.reset();
   xIntegrator.reset();
   yIntegrator.reset();
@@ -83,11 +74,6 @@ float PoseEstimator::distance() const
 float PoseEstimator::forwardVelocity() const
 {
   return forwardVel;
-}
-
-float PoseEstimator::rawTurnRate() const
-{
-  return rawTurnRateValue;
 }
 
 float PoseEstimator::turnRate() const

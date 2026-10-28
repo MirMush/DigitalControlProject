@@ -17,8 +17,8 @@ enum class MissionType
   ConstantTurn
 };
 
-constexpr ControlMode controlMode = ControlMode::ClosedLoop;
-constexpr MissionType missionType = MissionType::ConstantTurn;
+constexpr ControlMode controlMode = ControlMode::OpenLoop;
+constexpr MissionType missionType = MissionType::Straight;
 
 constexpr uint32_t sampleTimeUs = 1000;
 constexpr uint32_t logIntervalUs = 1000;
@@ -55,7 +55,7 @@ constexpr bool velocityFilterEnabled = false;
 constexpr float missionDistance = 1.0f;
 constexpr float missionCruiseVelocity = 0.40f;
 constexpr float missionTurnRate = 1.0f;
-constexpr float openLoopMotorVoltage = 7.0f;
+constexpr float openLoopMotorVoltage = 9.0f;
 }
 
 #endif

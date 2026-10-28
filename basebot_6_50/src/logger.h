@@ -10,7 +10,6 @@ struct LogData
   int state;
   float desiredValue;
   float motorVel[2];
-  float filteredMotorVel[2];
   float motorVolt[2];
   int32_t encoder[2];
   float motorCurrent[2];
@@ -25,7 +24,6 @@ struct LogData
   float gyroY;
   float gyroZ;
   float desiredTurnRate;
-  float rawTurnRate;
 };
 
 class Logger
