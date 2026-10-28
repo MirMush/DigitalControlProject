@@ -40,6 +40,7 @@ void printLog();
 #include "pose.h"
 #include "speed_controller.h"
 #include "turn_rate_controller.h"
+#include "heading_controller.h"
 #include "logger.h"
 #include "mission.h"
 #include "robot_config.h"
@@ -47,7 +48,6 @@ void printLog();
 
 /**
  * Global variables */
-// pose values
 PoseEstimator pose(
   RobotConfig::sampleTimeSeconds,
   RobotConfig::wheelBase,
@@ -62,6 +62,11 @@ SpeedController speedController(
 TurnRateController turnRateController(
     RobotConfig::turnRateProportionalGain,
     RobotConfig::turnRateIntegralGain,
+    RobotConfig::sampleTimeSeconds);
+HeadingController headingController(
+    RobotConfig::headingKcGain,
+    RobotConfig::headingTauZ,
+    RobotConfig::headingTauP,
     RobotConfig::sampleTimeSeconds);
 Mission mission(RobotConfig::missionCruiseVelocity);
 Logger logger(400000, RobotConfig::logSampleDivider);
