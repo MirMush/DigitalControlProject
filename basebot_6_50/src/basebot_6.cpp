@@ -66,7 +66,7 @@ HeadingController headingController(
     RobotConfig::headingTauZ,
     RobotConfig::headingTauP,
     RobotConfig::sampleTimeSeconds);
-Mission mission(RobotConfig::missionCruiseVelocity);
+Mission mission;
 Logger logger(400000, RobotConfig::logSampleDivider);
 
 void printLog()
@@ -145,7 +145,7 @@ void updateLog()
   LogData sample{};
   sample.time = time_sec;
   sample.state = static_cast<int>(mission.state());
-  sample.desiredValue = mission.reference().forwardSpeed;
+  sample.desiredVel = mission.reference().forwardSpeed;
   sample.motorVolt[0] = -motor.motorVoltage[0];
   sample.motorVolt[1] = motor.motorVoltage[1];
   sample.encoder[0] = -encoder.encoder[0];
@@ -164,7 +164,7 @@ void updateLog()
   sample.poseY = pose.y();
   sample.heading = pose.heading();
   sample.distA = pose.distance();
-  sample.desiredTurnRate = mission.reference().turnRate;
+  sample.desiredHeading = mission.reference().heading;
   logger.record(sample);
 }
 
@@ -174,21 +174,9 @@ void updateMission()
   if (mission.waitingForStart() and startSignal)
   {
     start();
-    switch (RobotConfig::missionType)
-    {
-      case RobotConfig::MissionType::Straight:
-        mission.startStraight(RobotConfig::missionDistance, time_sec, pose.distance());
-        break;
-      case RobotConfig::MissionType::ConstantTurn:
-        mission.startConstantTurn(
-            RobotConfig::missionDistance,
-            RobotConfig::missionTurnRate,
-            time_sec,
-            pose.distance());
-        break;
-    }
+    mission.begin(time_sec);
   }
-  else if (mission.update(time_sec, pose.distance()))
+  else if (mission.update(time_sec))
   {
     finished();
   }
@@ -218,10 +206,21 @@ void updateMotionControl()
     {
       const MotionReference reference = mission.reference();
       float wheelSpeedOffset = 0.0f;
+      float turnRateOffset = 0.0f;
+
+      if (RobotConfig::headingControlEnabled)
+      {
+        turnRateOffset = headingController.update(
+          reference.heading,
+          pose.heading()
+        );
+        wheelSpeedOffset = turnRateOffset * RobotConfig::wheelBase / 2.0f;
+      }
+
       if (RobotConfig::turnRateControlEnabled)
       {
         const float turnRateCorrection = turnRateController.update(
-            reference.turnRate,
+            turnRateCorrection,
             pose.turnRate());
         wheelSpeedOffset = turnRateCorrection * RobotConfig::wheelBase / 2.0f;
       }

@@ -8,7 +8,7 @@ struct LogData
 {
   float time;
   int state;
-  float desiredValue;
+  float desiredVel;
   float motorVel[2];
   float motorVolt[2];
   int32_t encoder[2];
@@ -23,7 +23,7 @@ struct LogData
   float gyroX;
   float gyroY;
   float gyroZ;
-  float desiredTurnRate;
+  float desiredHeading;
 };
 
 class Logger

@@ -38,7 +38,7 @@ constexpr float speedIntegralGain =
     speedProportionalGain / speedIntegralTimeConstant;
 
 // Turn Rate Controller (PI-controller)
-constexpr bool turnRateControlEnabled = true;
+constexpr bool turnRateControlEnabled = false;
 constexpr float turnRateProportionalGain = 1.0f;
 constexpr float turnRateIntegralTimeConstant = 0.2f;
 constexpr float turnRateIntegralGain =

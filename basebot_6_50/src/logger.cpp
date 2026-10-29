@@ -58,7 +58,7 @@ void Logger::printRow(const LogData &d)
 {
   Serial.print(d.time, 4);
   Serial.print(" "); Serial.print(d.state);
-  Serial.print(" "); Serial.print(d.desiredValue, 2);
+  Serial.print(" "); Serial.print(d.desiredVel, 2);
   Serial.print(" "); Serial.print(d.motorVolt[0], 2);
   Serial.print(" "); Serial.print(d.motorVolt[1], 2);
   Serial.print(" "); Serial.print(d.encoder[0]);
@@ -77,7 +77,7 @@ void Logger::printRow(const LogData &d)
   Serial.print(" "); Serial.print(d.distA, 2);
   Serial.print(" "); Serial.print(d.forwardVel, 2);
   Serial.print(" "); Serial.print(d.turnRate, 2);
-  Serial.print(" "); Serial.print(d.desiredTurnRate, 2);
+  Serial.print(" "); Serial.print(d.desiredHeading, 2);
   Serial.println();
 }
 

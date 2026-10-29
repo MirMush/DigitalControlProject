@@ -1,12 +1,8 @@
 #include "mission.h"
 
-Mission::Mission(float cruiseVelocity)
+Mission::Mission()
     : currentState(State::Waiting),
       endTime(0.0f),
-      targetDistance(0.0f),
-      startDistance(0.0f),
-      cruiseVelocity(cruiseVelocity),
-      commandedTurnRate(0.0f),
       currentReference{0.0f, 0.0f}
 {
 }
@@ -21,31 +17,15 @@ bool Mission::isActive() const
   return currentState != State::Waiting;
 }
 
-void Mission::startStraight(float distance, float currentTime, float traveledDistance)
+void Mission::begin(float currentTime)
 {
-  begin(distance, 0.0f, currentTime, traveledDistance);
-}
-
-void Mission::startConstantTurn(
-    float distance,
-    float turnRate,
-    float currentTime,
-    float traveledDistance)
-{
-  begin(distance, turnRate, currentTime, traveledDistance);
-}
-
-void Mission::begin(float distance, float turnRate, float currentTime, float traveledDistance)
-{
-  targetDistance = distance;
-  startDistance = traveledDistance;
-  commandedTurnRate = turnRate;
   currentReference = {0.0f, 0.0f};
   endTime = currentTime + 0.020f;
   currentState = State::StartDelay;
 }
 
-bool Mission::update(float currentTime, float traveledDistance)
+
+bool Mission::update(float currentTime)
 {
   switch (currentState)
   {
@@ -55,24 +35,32 @@ bool Mission::update(float currentTime, float traveledDistance)
     case State::StartDelay:
       if (currentTime > endTime)
       {
-        endTime = currentTime + targetDistance / cruiseVelocity + 3.0f;
+        endTime = currentTime + 6.0f;
         currentState = State::Driving;
       }
       break;
 
     case State::Driving:
     {
-      const float measuredProgress = traveledDistance - startDistance;
-      const float progress = measuredProgress > 0.0f ? measuredProgress : 0.0f;
-      if (progress >= targetDistance || currentTime > endTime)
+      if (currentTime > 1.0f)
+        currentReference = {0.5f, 0.0f};
+      
+      if (currentTime > 2.0f)
+        currentReference.heading += 3.1415f / 2;
+
+      if (currentTime > 3.0f)
+        currentReference.heading += 3.1415f / 2;
+      
+      if (currentTime > 4.0f)
+        currentReference.heading += 3.1415f / 2;
+      
+      if (currentTime > 5.0f)
+        currentReference.heading += 3.1415f / 2;
+
+      if (currentTime > endTime)
       {
-        currentReference = {0.0f, 0.0f};
-        endTime = currentTime + 0.3f;
+        endTime = currentTime + 0.2f;
         currentState = State::Finishing;
-      }
-      else
-      {
-        currentReference = {cruiseVelocity, commandedTurnRate};
       }
       break;
     }
@@ -93,7 +81,7 @@ bool Mission::update(float currentTime, float traveledDistance)
       }
       break;
   }
-
+  
   return false;
 }
 

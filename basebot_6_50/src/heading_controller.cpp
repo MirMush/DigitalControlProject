@@ -18,8 +18,8 @@ void HeadingController::reset()
 {
   previousError = 0.0;
   previousOutput = 0.0;
-  K1 = 2*tau_p - sampleTime;
-  K2 = Kc*sampleTime - 2*tau_z;
-  K3 = sampleTime*(2*tau_z + Kc);
-  K4 = 2*tau_p + sampleTime;
+  K1 = 0.0f; //2*tau_p - sampleTime;
+  K2 = 0.0f; //Kc*sampleTime - 2*tau_z;
+  K3 = 5.0f;//sampleTime*(2*tau_z + Kc);
+  K4 = 1.0f; //2*tau_p + sampleTime;
 }
