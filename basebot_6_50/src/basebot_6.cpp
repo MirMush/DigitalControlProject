@@ -38,6 +38,7 @@ void printLog();
 #include "src/uimu2.h"
 #include "src/uencoder.h"
 #include "pose.h"
+#include "acceleration_controller.h"
 #include "speed_controller.h"
 #include "turn_rate_controller.h"
 #include "heading_controller.h"
@@ -51,6 +52,10 @@ void printLog();
 PoseEstimator pose(
   RobotConfig::sampleTimeSeconds,
   RobotConfig::wheelBase);
+AccelerationController accelerationController(
+    RobotConfig::accelerationProportionalGain,
+    RobotConfig::maximumLinearAcceleration,
+    RobotConfig::sampleTimeSeconds);
 SpeedController speedController(
     RobotConfig::gearRatio,
     RobotConfig::wheelRadius,
@@ -115,6 +120,7 @@ void start()
   // so, disable during sequence.
   display.useDisplay = false;
   pose.reset();
+  accelerationController.reset();
   speedController.reset();
   turnRateController.reset();
   headingController.reset();
@@ -224,9 +230,13 @@ void updateMotionControl()
             pose.turnRate());
         wheelSpeedOffset = turnRateCorrection * RobotConfig::wheelBase / 2.0f;
       }
+
+      const float limitedForwardSpeed =
+          accelerationController.update(reference.forwardSpeed);
+          
       output = speedController.update(
-        reference.forwardSpeed - wheelSpeedOffset,
-        reference.forwardSpeed + wheelSpeedOffset,
+        limitedForwardSpeed - wheelSpeedOffset,
+        limitedForwardSpeed + wheelSpeedOffset,
           -encoder.motorVelocity[0],
           encoder.motorVelocity[1]);
       break;

@@ -35,7 +35,7 @@ bool Mission::update(float currentTime)
     case State::StartDelay:
       if (currentTime > endTime)
       {
-        endTime = currentTime + 6.0f;
+        endTime = currentTime + 12.0f;
         currentState = State::Driving;
       }
       break;
@@ -45,16 +45,16 @@ bool Mission::update(float currentTime)
       if (currentTime > 1.0f)
         currentReference = {0.5f, 0.0f};
       
-      if (currentTime > 2.0f)
-        currentReference.heading += 3.1415f / 2;
-
       if (currentTime > 3.0f)
         currentReference.heading += 3.1415f / 2;
-      
-      if (currentTime > 4.0f)
+
+      if (currentTime > 5.0f)
         currentReference.heading += 3.1415f / 2;
       
-      if (currentTime > 5.0f)
+      if (currentTime > 7.0f)
+        currentReference.heading += 3.1415f / 2;
+      
+      if (currentTime > 9.0f)
         currentReference.heading += 3.1415f / 2;
 
       if (currentTime > endTime)

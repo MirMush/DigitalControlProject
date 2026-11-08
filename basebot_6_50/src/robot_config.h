@@ -14,7 +14,7 @@ enum class ControlMode
 enum class MissionType
 {
   Straight,
-  ConstantTurn
+  Square,
 };
 
 constexpr uint32_t sampleTimeUs = 1000;
@@ -33,9 +33,13 @@ constexpr ControlMode controlMode = ControlMode::ClosedLoop;
 
 // Speed Controller (PI-controller)
 constexpr float speedProportionalGain = 0.04;
-constexpr float speedIntegralTimeConstant = 0.1;
+constexpr float speedIntegralTimeConstant = 0.5;
 constexpr float speedIntegralGain =
     speedProportionalGain / speedIntegralTimeConstant;
+
+// Acceleration-limited forward-speed reference
+constexpr float accelerationProportionalGain = 25.0f;
+constexpr float maximumLinearAcceleration = 0.5f; // Tune for the robot and load
 
 // Turn Rate Controller (PI-controller)
 constexpr bool turnRateControlEnabled = false;
@@ -46,14 +50,14 @@ constexpr float turnRateIntegralGain =
 
 // Heading Controller (Lead Controller)
 constexpr bool headingControlEnabled = true;
-constexpr float headingKcGain = 1.0;
-constexpr float headingTauZ = 1.0;
-constexpr float headingTauP = 0.5;
+constexpr float headingKcGain = 0.5;
+constexpr float headingTauZ = 1000.0;
+constexpr float headingTauP = 0.1;
 
 // Mission
-constexpr MissionType missionType = MissionType::Straight;
+constexpr MissionType missionType = MissionType::Square;
 constexpr float missionDistance = 1.0f; 
-constexpr float missionCruiseVelocity = 0.40f; // max 3 m/s
+constexpr float missionCruiseVelocity = 3.0f; // max 3 m/s
 constexpr float missionTurnRate = 1.0f;
 constexpr float openLoopMotorVoltage = 7.0f; // max 9V
 }
