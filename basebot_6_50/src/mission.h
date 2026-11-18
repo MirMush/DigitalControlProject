@@ -7,6 +7,12 @@ struct MotionReference
   float heading;
 };
 
+struct MotorVoltageReference
+{
+  float left;
+  float right;
+};
+
 class Mission
 {
 public:
@@ -24,15 +30,19 @@ public:
   void begin(float currentTime);
   bool waitingForStart() const;
   bool isActive() const;
-  bool update(float currentTime);
+  bool update(float currentTime, float traveledDistance);
+  bool usesDirectMotorVoltage() const;
   void stop(float currentTime, float delay);
   State state() const;
   MotionReference reference() const;
+  MotorVoltageReference motorVoltage() const;
 
 private:
   State currentState;
   float endTime;
+  float sequenceStartTime;
   MotionReference currentReference;
+  MotorVoltageReference currentMotorVoltage;
 
 };
 

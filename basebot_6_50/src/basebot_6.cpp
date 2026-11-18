@@ -182,7 +182,7 @@ void updateMission()
     start();
     mission.begin(time_sec);
   }
-  else if (mission.update(time_sec))
+  else if (mission.update(time_sec, pose.distance()))
   {
     finished();
   }
@@ -196,6 +196,14 @@ void updateMotionControl()
   pose.update(
       -encoder.motorVelocity[0] * RobotConfig::wheelRadius / RobotConfig::gearRatio,
        encoder.motorVelocity[1] * RobotConfig::wheelRadius / RobotConfig::gearRatio);
+
+  if (mission.usesDirectMotorVoltage())
+  {
+    const MotorVoltageReference reference = mission.motorVoltage();
+    motor.motorVoltage[0] = -reference.left;
+    motor.motorVoltage[1] = reference.right;
+    return;
+  }
 
   MotorVoltage output{};
   switch (RobotConfig::controlMode)
