@@ -165,9 +165,9 @@ void updateMission()
   if (mission.waitingForStart() and startSignal)
   {
     start();
-    mission.startStraight(RobotConfig::missionDistance, time_sec, pose.distance());
+    mission.begin(time_sec, pose.distance(), pose.heading());
   }
-  else if (mission.updateStraight(time_sec, pose.distance()))
+  else if (mission.update(time_sec, pose.distance()))
   {
     finished();
   }
@@ -177,10 +177,6 @@ void updateMotionControl()
 {
   if (!mission.isActive())
     return;
-
-  pose.update(
-      -motorVelocityFilter[0].value() * RobotConfig::wheelRadius / RobotConfig::gearRatio,
-       motorVelocityFilter[1].value() * RobotConfig::wheelRadius / RobotConfig::gearRatio);
 
   MotorVoltage output{};
   switch (RobotConfig::controlMode)
@@ -223,7 +219,12 @@ void updateControlCycle()
 {
   imu2.tick();
   encoder.tick();
-  updateVelocityFilter();
+  if (mission.isActive())
+  {
+    pose.update(
+        -encoder.motorVelocity[0] * RobotConfig::wheelRadius / RobotConfig::gearRatio,
+         encoder.motorVelocity[1] * RobotConfig::wheelRadius / RobotConfig::gearRatio);
+  }
   updateMission();
   updateMotionControl();
   motor.tick();

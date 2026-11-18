@@ -15,10 +15,10 @@ public:
 
   explicit Mission(float cruiseVelocity);
 
+  void begin(float currentTime);
   bool waitingForStart() const;
   bool isActive() const;
-  void startStraight(float targetDistance, float currentTime, float traveledDistance);
-  bool updateStraight(float currentTime, float traveledDistance);
+  bool update(float currentTime);
   void stop(float currentTime, float delay);
   State state() const;
   float speedReference() const;
@@ -26,10 +26,8 @@ public:
 private:
   State currentState;
   float endTime;
-  float targetDistance;
-  float startDistance;
-  float cruiseVelocity;
-  float reference;
+  MotionReference currentReference;
+
 };
 
 #endif

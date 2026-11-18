@@ -1,12 +1,26 @@
 #include "mission.h"
 
+#include "robot_config.h"
+
+#include <math.h>
+
+namespace
+{
+constexpr float pi = 3.14159265358979323846f;
+// Integral of sin(pi * smoothstep(u)) over u in [0, 1].
+constexpr float turnOffsetIntegral = 0.486076f;
+constexpr float turnDistance =
+    RobotConfig::missionLaneOffset / turnOffsetIntegral;
+constexpr float endOfTurnDistance =
+    RobotConfig::missionDistance + turnDistance;
+constexpr float routeEndDistance =
+    endOfTurnDistance + RobotConfig::missionFinalStraightDistance;
+}
+
 Mission::Mission(float cruiseVelocity)
     : currentState(State::Waiting),
       endTime(0.0f),
-      targetDistance(0.0f),
-      startDistance(0.0f),
-      cruiseVelocity(cruiseVelocity),
-      reference(0.0f)
+      currentReference{0.0f, 0.0f}
 {
 }
 
@@ -20,16 +34,19 @@ bool Mission::isActive() const
   return currentState != State::Waiting;
 }
 
-void Mission::startStraight(float distance, float currentTime, float traveledDistance)
+void Mission::begin(float currentTime)
 {
   targetDistance = distance;
   startDistance = traveledDistance;
   reference = 0.0f;
   endTime = currentTime + 0.020f;
+  startingDistance = traveledDistance;
+  startingHeading = initialHeading;
   currentState = State::StartDelay;
 }
 
-bool Mission::updateStraight(float currentTime, float traveledDistance)
+
+bool Mission::update(float currentTime)
 {
   switch (currentState)
   {
@@ -39,19 +56,31 @@ bool Mission::updateStraight(float currentTime, float traveledDistance)
     case State::StartDelay:
       if (currentTime > endTime)
       {
-        endTime = currentTime + targetDistance / cruiseVelocity + 3.0f;
+        endTime = currentTime + 12.0f;
         currentState = State::Driving;
       }
       break;
 
     case State::Driving:
     {
-      const float measuredProgress = traveledDistance - startDistance;
-      const float progress = measuredProgress > 0.0f ? measuredProgress : 0.0f;
-      if (progress >= targetDistance || currentTime > endTime)
+      if (currentTime > 1.0f)
+        currentReference = {0.5f, 0.0f};
+      
+      if (currentTime > 3.0f)
+        currentReference.heading += 3.1415f / 2;
+
+      if (currentTime > 5.0f)
+        currentReference.heading += 3.1415f / 2;
+      
+      if (currentTime > 7.0f)
+        currentReference.heading += 3.1415f / 2;
+      
+      if (currentTime > 9.0f)
+        currentReference.heading += 3.1415f / 2;
+
+      if (currentTime > endTime)
       {
-        reference = 0.0f;
-        endTime = currentTime + 0.3f;
+        endTime = currentTime + 0.2f;
         currentState = State::Finishing;
       }
       else
