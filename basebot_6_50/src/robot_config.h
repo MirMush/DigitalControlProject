@@ -59,20 +59,21 @@ constexpr float turnRateIntegralGain =
 
 // Heading Controller (Lead Controller)
 constexpr bool headingControlEnabled = true;
-constexpr float headingKcGain = 10;
+constexpr float headingKcGain = 9.45;
 constexpr float headingTauZ = 0.1;
 constexpr float headingTauP = 0.1;
 
 // Mission
 constexpr MissionType missionType = MissionType::CircularReturn;
 constexpr float missionDistance = 1.0f;
-constexpr float missionCruiseVelocity = 0.5f; // max 3 m/s
+constexpr float missionCruiseVelocity = 2.0f; // max 3 m/s
+constexpr float missionCurveVelocity = 0.5f;
 constexpr float missionTurnRate = 1.0f;
 constexpr float openLoopMotorVoltage = 7.0f; // max 9V
 constexpr float firstStraightDistance = 1.0f;
 constexpr float circleRadius = 0.5f;
-constexpr float circleSweepAngleDegrees = 315.0f;
-constexpr float circleFinalHeadingOffsetDegrees = -10.0f;
+constexpr float circleSweepAngleDegrees = 310.0f;
+constexpr float circleFinalHeadingOffsetDegrees = 1.0f;
 constexpr float secondStraightDistance = 1.5f;
 constexpr float circleJoinBlendDistance = 0.2f;
 constexpr float circleExitBlendDistance = 0.5f;

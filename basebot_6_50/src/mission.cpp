@@ -398,7 +398,22 @@ bool Mission::update(float currentTime, float traveledDistance)
         }
         else
         {
-          currentReference = {RobotConfig::missionCruiseVelocity, heading};
+          float forwardSpeed = RobotConfig::missionCruiseVelocity;
+          if (progress >= arcStart && progress < arcEnd)
+          {
+            forwardSpeed = RobotConfig::missionCurveVelocity;
+          }
+          else if (progress >= arcEnd)
+          {
+            const float remainingDistance = pathEnd - progress;
+            const float brakingAcceleration =
+                RobotConfig::maximumLinearAcceleration * 0.8f;
+            const float brakingSpeed = sqrtf(
+                2.0f * brakingAcceleration * remainingDistance);
+            if (brakingSpeed < forwardSpeed)
+              forwardSpeed = brakingSpeed;
+          }
+          currentReference = {forwardSpeed, heading};
         }
         break;
       }
