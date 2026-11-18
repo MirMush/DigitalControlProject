@@ -17,6 +17,13 @@ enum class MissionType
   Square,
   MotorStepSequence,
   MotorPulseSequence,
+  CircularReturn,
+};
+
+enum class TurnDirection
+{
+  Left,
+  Right,
 };
 
 constexpr uint32_t sampleTimeUs = 1000;
@@ -57,11 +64,17 @@ constexpr float headingTauZ = 1000.0;
 constexpr float headingTauP = 0.1;
 
 // Mission
-constexpr MissionType missionType = MissionType::MotorPulseSequence;
+constexpr MissionType missionType = MissionType::CircularReturn;
 constexpr float missionDistance = 1.0f;
 constexpr float missionCruiseVelocity = 0.5f; // max 3 m/s
 constexpr float missionTurnRate = 1.0f;
 constexpr float openLoopMotorVoltage = 7.0f; // max 9V
+constexpr float firstStraightDistance = 1.0f;
+constexpr float circleRadius = 0.5f;
+constexpr float straightSeparation = 0.3f;
+constexpr float secondStraightDistance = 1.5f;
+constexpr float circleJoinBlendDistance = 0.2f;
+constexpr TurnDirection circleDirection = TurnDirection::Left;
 }
 
 #endif

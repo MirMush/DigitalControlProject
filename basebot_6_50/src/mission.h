@@ -41,6 +41,9 @@ private:
   State currentState;
   float endTime;
   float sequenceStartTime;
+  float pathStartDistance;
+  float circleArcEntryHeading;
+  float circleArcLength;
   MotionReference currentReference;
   MotorVoltageReference currentMotorVoltage;
 
