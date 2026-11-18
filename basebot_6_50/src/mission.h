@@ -44,6 +44,8 @@ private:
   float pathStartDistance;
   float circleArcEntryHeading;
   float circleArcLength;
+  float circleExitCorrectionEven;
+  float circleExitCorrectionOdd;
   MotionReference currentReference;
   MotorVoltageReference currentMotorVoltage;
 

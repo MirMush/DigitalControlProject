@@ -70,11 +70,19 @@ struct ArcDisplacement
   float y;
 };
 
-ArcDisplacement circleArcDisplacement(float entryHeading, float arcLength)
+ArcDisplacement circleArcDisplacement(
+    float entryHeading,
+    float arcLength,
+    float entryBlendDistance,
+    float exitBlendDistance,
+    float correctionEven = 0.0f,
+    float correctionOdd = 0.0f)
 {
   constexpr int integrationSteps = 128;
+  constexpr float pi = 3.14159265f;
   const float radius = RobotConfig::circleRadius;
-  const float blendDistance = RobotConfig::circleJoinBlendDistance;
+  const float finalHeading =
+      pi + RobotConfig::circleFinalHeadingOffsetDegrees * pi / 180.0f;
   const float stepLength = arcLength / integrationSteps;
   ArcDisplacement displacement{0.0f, 0.0f};
 
@@ -82,29 +90,37 @@ ArcDisplacement circleArcDisplacement(float entryHeading, float arcLength)
   {
     const float progress = (i + 0.5f) * stepLength;
     float heading;
-    if (progress < blendDistance)
+    if (progress < entryBlendDistance)
     {
       heading = smoothHeading(
           0.0f,
-          entryHeading + blendDistance / radius,
+          entryHeading + entryBlendDistance / radius,
           0.0f,
           1.0f / radius,
-          blendDistance,
+          entryBlendDistance,
           progress);
     }
-    else if (progress < arcLength - blendDistance)
+    else if (progress < arcLength - exitBlendDistance)
     {
       heading = entryHeading + progress / radius;
     }
     else
     {
+      const float exitProgress =
+          progress - (arcLength - exitBlendDistance);
+      const float t = exitProgress / exitBlendDistance;
+      const float t2 = t * t;
+      const float evenBasis = t2 * (1.0f - t) * (1.0f - t);
+      const float oddBasis = evenBasis * (2.0f * t - 1.0f);
       heading = smoothHeading(
-          entryHeading + (arcLength - blendDistance) / radius,
-          3.14159265f,
+          entryHeading + (arcLength - exitBlendDistance) / radius,
+          finalHeading,
           1.0f / radius,
           0.0f,
-          blendDistance,
-          progress - (arcLength - blendDistance));
+          exitBlendDistance,
+          exitProgress) +
+          correctionEven * evenBasis +
+          correctionOdd * oddBasis;
     }
 
     displacement.x += cosf(heading) * stepLength;
@@ -122,6 +138,8 @@ Mission::Mission()
       pathStartDistance(0.0f),
       circleArcEntryHeading(0.0f),
       circleArcLength(0.0f),
+      circleExitCorrectionEven(0.0f),
+      circleExitCorrectionOdd(0.0f),
       currentReference{0.0f, 0.0f},
       currentMotorVoltage{0.0f, 0.0f}
 {
@@ -144,25 +162,39 @@ void Mission::begin(float currentTime)
   sequenceStartTime = currentTime;
   if (RobotConfig::missionType == RobotConfig::MissionType::CircularReturn)
   {
-    // Recalculate the circle entry and length so smoothing preserves the lane gap.
-    const float halfChordAngle = asinf(
-        RobotConfig::straightSeparation /
-        (2.0f * RobotConfig::circleRadius));
+    // Solve the circle for the requested sweep, then fit only the exit blend.
+    constexpr float pi = 3.14159265f;
+    const float sweepAngle =
+        RobotConfig::circleSweepAngleDegrees * pi / 180.0f;
+    const float halfChordAngle = (2.0f * pi - sweepAngle) / 2.0f;
+    const float targetSeparation =
+        2.0f * RobotConfig::circleRadius * sinf(halfChordAngle);
     float entryHeading = halfChordAngle - 3.14159265f / 2.0f;
-    float arcLength =
-        RobotConfig::circleRadius * (2.0f * 3.14159265f - 2.0f * halfChordAngle);
+    float arcLength = RobotConfig::circleRadius * sweepAngle;
     constexpr float finiteDifference = 0.001f;
 
     for (int i = 0; i < 5; ++i)
     {
       const ArcDisplacement current =
-          circleArcDisplacement(entryHeading, arcLength);
+          circleArcDisplacement(
+              entryHeading,
+              arcLength,
+              RobotConfig::circleJoinBlendDistance,
+              RobotConfig::circleJoinBlendDistance);
       const ArcDisplacement headingPerturbed =
-          circleArcDisplacement(entryHeading + finiteDifference, arcLength);
+          circleArcDisplacement(
+              entryHeading + finiteDifference,
+              arcLength,
+              RobotConfig::circleJoinBlendDistance,
+              RobotConfig::circleJoinBlendDistance);
       const ArcDisplacement lengthPerturbed =
-          circleArcDisplacement(entryHeading, arcLength + finiteDifference);
+          circleArcDisplacement(
+              entryHeading,
+              arcLength + finiteDifference,
+              RobotConfig::circleJoinBlendDistance,
+              RobotConfig::circleJoinBlendDistance);
       const float dx = current.x;
-      const float dy = current.y - RobotConfig::straightSeparation;
+      const float dy = current.y - targetSeparation;
       const float dxdHeading = (headingPerturbed.x - current.x) / finiteDifference;
       const float dydHeading = (headingPerturbed.y - current.y) / finiteDifference;
       const float dxdLength = (lengthPerturbed.x - current.x) / finiteDifference;
@@ -177,12 +209,63 @@ void Mission::begin(float currentTime)
       arcLength += (-dxdHeading * dy + dydHeading * dx) / determinant;
     }
 
+    const ArcDisplacement targetDisplacement =
+        circleArcDisplacement(
+            entryHeading,
+            arcLength,
+            RobotConfig::circleJoinBlendDistance,
+            RobotConfig::circleJoinBlendDistance);
+    float correctionEven = 0.0f;
+    float correctionOdd = 0.0f;
+    for (int i = 0; i < 5; ++i)
+    {
+      const ArcDisplacement current =
+          circleArcDisplacement(
+              entryHeading,
+              arcLength,
+              RobotConfig::circleJoinBlendDistance,
+              RobotConfig::circleExitBlendDistance,
+              correctionEven,
+              correctionOdd);
+      const ArcDisplacement evenPerturbed =
+          circleArcDisplacement(
+              entryHeading,
+              arcLength,
+              RobotConfig::circleJoinBlendDistance,
+              RobotConfig::circleExitBlendDistance,
+              correctionEven + finiteDifference,
+              correctionOdd);
+      const ArcDisplacement oddPerturbed =
+          circleArcDisplacement(
+              entryHeading,
+              arcLength,
+              RobotConfig::circleJoinBlendDistance,
+              RobotConfig::circleExitBlendDistance,
+              correctionEven,
+              correctionOdd + finiteDifference);
+      const float dx = current.x - targetDisplacement.x;
+      const float dy = current.y - targetDisplacement.y;
+      const float dxdEven = (evenPerturbed.x - current.x) / finiteDifference;
+      const float dydEven = (evenPerturbed.y - current.y) / finiteDifference;
+      const float dxdOdd = (oddPerturbed.x - current.x) / finiteDifference;
+      const float dydOdd = (oddPerturbed.y - current.y) / finiteDifference;
+      const float determinant = dxdEven * dydOdd - dxdOdd * dydEven;
+
+      if (fabsf(determinant) < 1e-6f)
+        break;
+
+      correctionEven += (-dx * dydOdd + dxdOdd * dy) / determinant;
+      correctionOdd += (-dxdEven * dy + dydEven * dx) / determinant;
+    }
+
     const float direction =
         RobotConfig::circleDirection == RobotConfig::TurnDirection::Left
             ? 1.0f
             : -1.0f;
     circleArcEntryHeading = direction * entryHeading;
     circleArcLength = arcLength;
+    circleExitCorrectionEven = correctionEven;
+    circleExitCorrectionOdd = correctionOdd;
   }
 
   if (usesDirectMotorVoltage())
@@ -243,9 +326,10 @@ bool Mission::update(float currentTime, float traveledDistance)
         const float arcStart = RobotConfig::firstStraightDistance -
                                RobotConfig::circleJoinBlendDistance;
         const float arcEnd = arcStart + circleArcLength;
-        const float blendDistance = RobotConfig::circleJoinBlendDistance;
-        const float entryBlendEnd = arcStart + blendDistance;
-        const float exitBlendStart = arcEnd - blendDistance;
+        const float entryBlendDistance = RobotConfig::circleJoinBlendDistance;
+        const float exitBlendDistance = RobotConfig::circleExitBlendDistance;
+        const float entryBlendEnd = arcStart + entryBlendDistance;
+        const float exitBlendStart = arcEnd - exitBlendDistance;
         const float finalStraightStart = arcEnd;
         const float pathEnd = finalStraightStart +
                               RobotConfig::secondStraightDistance;
@@ -254,11 +338,14 @@ bool Mission::update(float currentTime, float traveledDistance)
                 ? 1.0f
                 : -1.0f;
         const float entryHeading = circleArcEntryHeading;
-        const float finalHeading = direction * 3.14159265f;
+        const float finalHeading = direction *
+            (3.14159265f +
+             RobotConfig::circleFinalHeadingOffsetDegrees *
+                 3.14159265f / 180.0f);
         const float arcHeadingAtEntryBlendEnd =
-            entryHeading + direction * blendDistance / RobotConfig::circleRadius;
+            entryHeading + direction * entryBlendDistance / RobotConfig::circleRadius;
         const float arcHeadingAtExitBlendStart =
-            entryHeading + direction * (circleArcLength - blendDistance) /
+            entryHeading + direction * (circleArcLength - exitBlendDistance) /
                                RobotConfig::circleRadius;
         float heading;
 
@@ -273,7 +360,7 @@ bool Mission::update(float currentTime, float traveledDistance)
               arcHeadingAtEntryBlendEnd,
               0.0f,
               direction / RobotConfig::circleRadius,
-              blendDistance,
+              entryBlendDistance,
               progress - arcStart);
         }
         else if (progress < exitBlendStart)
@@ -283,13 +370,20 @@ bool Mission::update(float currentTime, float traveledDistance)
         }
         else if (progress < arcEnd)
         {
+          const float exitProgress = progress - exitBlendStart;
+          const float t = exitProgress / exitBlendDistance;
+          const float t2 = t * t;
+          const float evenBasis = t2 * (1.0f - t) * (1.0f - t);
+          const float oddBasis = evenBasis * (2.0f * t - 1.0f);
           heading = smoothHeading(
               arcHeadingAtExitBlendStart,
               finalHeading,
               direction / RobotConfig::circleRadius,
               0.0f,
-              blendDistance,
-              progress - exitBlendStart);
+              exitBlendDistance,
+              exitProgress) +
+              direction * (circleExitCorrectionEven * evenBasis +
+                           circleExitCorrectionOdd * oddBasis);
         }
         else
         {
