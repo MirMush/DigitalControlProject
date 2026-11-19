@@ -48,7 +48,7 @@ constexpr float speedIntegralGain =
 
 // Acceleration-limited forward-speed reference
 constexpr float accelerationProportionalGain = 25.0f;
-constexpr float maximumLinearAcceleration = 0.5f; // Tune for the robot and load
+constexpr float maximumLinearAcceleration = 1.0f; // Tune for the robot and load
 
 // Turn Rate Controller (PI-controller)
 constexpr bool turnRateControlEnabled = false;
@@ -59,15 +59,15 @@ constexpr float turnRateIntegralGain =
 
 // Heading Controller (Lead Controller)
 constexpr bool headingControlEnabled = true;
-constexpr float headingKcGain = 9.45;
+constexpr float headingKcGain = 6.0;
 constexpr float headingTauZ = 0.1;
 constexpr float headingTauP = 0.1;
 
 // Mission
 constexpr MissionType missionType = MissionType::CircularReturn;
 constexpr float missionDistance = 1.0f;
-constexpr float missionCruiseVelocity = 2.0f; // max 3 m/s
-constexpr float missionCurveVelocity = 0.5f;
+constexpr float missionCruiseVelocity = 2.5f; // max 3 m/s
+constexpr float missionCurveVelocity = 0.7f;
 constexpr float missionTurnRate = 1.0f;
 constexpr float openLoopMotorVoltage = 7.0f; // max 9V
 constexpr float firstStraightDistance = 1.0f;
