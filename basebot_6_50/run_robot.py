@@ -18,18 +18,48 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 LOGS = ROOT / "logs"
 NOTEBOOKS = (LOGS / "robot_log_viewer.ipynb",)
-JUPYTER = ROOT / ".venv" / "bin" / "jupyter"
-PROJECT_PYTHON = ROOT / ".venv" / "bin" / "python"
+
+
+def find_jupyter():
+    candidates = [
+        ROOT / ".venv" / "Scripts" / "jupyter.exe",
+        ROOT / ".venv" / "bin" / "jupyter",
+    ]
+    executable = shutil.which("jupyter")
+    if executable:
+        candidates.append(Path(executable))
+    return next((path for path in candidates if path.is_file()), None)
+
+
+JUPYTER = find_jupyter()
 
 
 def find_platformio():
-    executable = shutil.which("platformio")
-    if executable:
-        return executable
-    executable = Path.home() / ".platformio" / "penv" / "bin" / "platformio"
-    if executable.is_file():
-        return str(executable)
+    for command in ("platformio", "pio"):
+        executable = shutil.which(command)
+        if executable:
+            return executable
+
+    platformio_env = Path.home() / ".platformio" / "penv"
+    for executable in (
+        platformio_env / "Scripts" / "platformio.exe",
+        platformio_env / "Scripts" / "pio.exe",
+        platformio_env / "bin" / "platformio",
+        platformio_env / "bin" / "pio",
+    ):
+        if executable.is_file():
+            return str(executable)
     raise RuntimeError("PlatformIO was not found; install it or add it to PATH.")
+
+
+def add_platformio_python_packages(platformio):
+    executable = Path(platformio).resolve()
+    if executable.parent.name.lower() in ("scripts", "bin"):
+        environment = executable.parent.parent
+        site_packages = environment / "Lib" / "site-packages"
+        if site_packages.is_dir() and str(site_packages) not in sys.path:
+            sys.path.insert(0, str(site_packages))
+            importlib.invalidate_caches()
 
 
 def safe_stem(name):
@@ -160,7 +190,7 @@ def capture_run(port, log_path, auto_start=False):
     else:
         print("Press the robot start button. Capture ends when the mission completes.", flush=True)
     with serial.Serial(port, baudrate=12000000, timeout=1) as connection:
-        with log_path.open("x", encoding="utf-8") as output:
+        with log_path.open("x", encoding="utf-8", newline="") as output:
             if auto_start:
                 connection.write(b"start\n")
                 connection.flush()
@@ -197,13 +227,89 @@ def capture_run(port, log_path, auto_start=False):
         raise RuntimeError(f"No numeric log rows were captured in {log_path}.")
 
 
+def capture_buffered_run(port, log_path):
+    try:
+        serial = importlib.import_module("serial")
+    except ImportError as exc:
+        raise RuntimeError("PySerial is unavailable in the PlatformIO Python environment.") from exc
+
+    print(f"Downloading the robot's buffered run to {log_path}", flush=True)
+    print("Keep the robot powered; this command does not build or upload firmware.", flush=True)
+    received = bytearray()
+    footer_match = None
+    with serial.Serial(port, baudrate=12000000, timeout=1) as connection:
+        time.sleep(0.2)
+        connection.reset_input_buffer()
+        connection.write(b"log\n")
+        connection.flush()
+        deadline = time.monotonic() + 90
+        while time.monotonic() < deadline:
+            chunk = connection.read(4096)
+            if not chunk:
+                continue
+            received.extend(chunk)
+            footer_match = re.search(rb"% sent (\d+) log lines\r?\n", received)
+            if footer_match:
+                break
+
+    if footer_match is None:
+        raise RuntimeError(
+            "Timed out waiting for the buffered log. Check that the run finished "
+            "and the robot is still powered."
+        )
+
+    log_bytes = bytes(received[:footer_match.end()])
+    with log_path.open("xb") as output:
+        output.write(log_bytes)
+
+    expected_rows = int(footer_match.group(1))
+    maximum_match = re.search(rb"% maximum log samples (\d+)", log_bytes)
+    maximum_samples = int(maximum_match.group(1)) if maximum_match else None
+    log_lines = log_bytes.decode("utf-8", errors="replace").splitlines()
+    sample_lines = [
+        line for line in log_lines
+        if line.strip() and not line.lstrip().startswith("%")
+    ]
+    valid_rows = 0
+    malformed_rows = 0
+    for line in sample_lines:
+        fields = line.split()
+        if len(fields) != 22:
+            malformed_rows += 1
+            continue
+        try:
+            float(fields[0])
+        except ValueError:
+            continue
+        valid_rows += 1
+
+    if expected_rows == 0 or valid_rows == 0:
+        raise RuntimeError(f"The robot returned no buffered samples; see {log_path}.")
+    if valid_rows != expected_rows:
+        raise RuntimeError(
+            f"The robot reported {expected_rows} samples, but only {valid_rows} "
+            f"valid rows were downloaded ({malformed_rows} malformed row(s)). "
+            f"The file is at {log_path}; keep the robot powered and retry the download."
+        )
+    if maximum_samples is not None and expected_rows >= maximum_samples:
+        print(
+            "Warning: the log reached the robot's RAM buffer capacity; "
+            "later samples may have been dropped.",
+            flush=True,
+        )
+    print(f"Downloaded {valid_rows} samples to {log_path}.", flush=True)
+
+
 def export_notebook_plots(log_path, plot_dir):
     notebook_path = next((path for path in NOTEBOOKS if path.is_file()), None)
     if notebook_path is None:
         checked = ", ".join(str(path) for path in NOTEBOOKS)
         raise RuntimeError(f"Analysis notebook not found. Checked: {checked}")
-    if not JUPYTER.is_file():
-        raise RuntimeError(f"Jupyter executable not found: {JUPYTER}")
+    if JUPYTER is None:
+        raise RuntimeError(
+            "Jupyter was not found. Open the notebook in VS Code to view plots, "
+            "or install Jupyter in the project environment to export plots."
+        )
 
     notebook = json.loads(notebook_path.read_text(encoding="utf-8"))
     patched = False
@@ -268,7 +374,12 @@ def main():
         action="store_true",
         help="plot an existing log by name instead of building and capturing a run",
     )
-    parser.add_argument("--port", help="USB serial port, e.g. /dev/ttyACM0")
+    parser.add_argument(
+        "--download",
+        action="store_true",
+        help="download the robot's last RAM-buffered run without uploading firmware",
+    )
+    parser.add_argument("--port", help="USB serial port, e.g. COM9 or /dev/ttyACM0")
     parser.add_argument(
         "--auto-start",
         action="store_true",
@@ -279,12 +390,45 @@ def main():
     args = parser.parse_args()
 
     LOGS.mkdir(exist_ok=True)
+    if args.download and (args.plot or args.auto_start or args.delete or args.yes):
+        parser.error("--download cannot be combined with --plot, --auto-start, or --delete")
     if args.delete:
         if not args.name:
             parser.error("--delete requires a log name")
         return delete_run_artifacts(args.name, confirmed=args.yes)
     if args.yes:
         parser.error("--yes can only be used with --delete")
+
+    if args.download:
+        if not args.name:
+            parser.error("--download requires a log name")
+        stem, log_path, plot_dir = allocate_run_paths(args.name)
+        if stem != safe_stem(args.name):
+            print(f"That name already exists; using '{stem}' instead.")
+        try:
+            platformio = find_platformio()
+            add_platformio_python_packages(platformio)
+            port = choose_port(args.port)
+            print(f"Using serial port {port}.", flush=True)
+            capture_buffered_run(port, log_path)
+            if JUPYTER is None:
+                print(f"\nLog saved: {log_path}")
+                print(
+                    "Plot export skipped: Jupyter was not found. "
+                    "Open the notebook in VS Code to view plots."
+                )
+                return 0
+            image_count = export_notebook_plots(log_path, plot_dir)
+        except KeyboardInterrupt:
+            print(f"\nInterrupted; any downloaded data remains at {log_path}.")
+            return 130
+        except (OSError, RuntimeError, subprocess.CalledProcessError, ValueError) as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return 1
+
+        print(f"\nLog saved: {log_path}")
+        print(f"Exported {image_count} plots to: {plot_dir}")
+        return 0
 
     if args.plot:
         if not args.name:
@@ -312,11 +456,19 @@ def main():
 
     try:
         platformio = find_platformio()
+        add_platformio_python_packages(platformio)
         run_build(platformio)
         upload_with_retry(platformio)
         port = choose_port(args.port)
         print(f"Using serial port {port}.", flush=True)
         capture_run(port, log_path, auto_start=args.auto_start)
+        if JUPYTER is None:
+            print(f"\nLog saved: {log_path}")
+            print(
+                "Plot export skipped: Jupyter was not found. "
+                "Open the notebook in VS Code to view plots."
+            )
+            return 0
         image_count = export_notebook_plots(log_path, plot_dir)
     except KeyboardInterrupt:
         print(f"\nStopped; any captured data remains at {log_path}.")

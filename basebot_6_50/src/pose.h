@@ -14,7 +14,9 @@ public:
 
   void update(
       float leftWheelVelocity,
-      float rightWheelVelocity);
+      float rightWheelVelocity,
+      float gyroYawRate,
+      bool gyroYawRateValid);
   void reset();
 
   float x() const;

@@ -37,6 +37,11 @@ constexpr float gearRatio = 9.6f;
 constexpr float wheelRadius = 0.0315f;
 constexpr float wheelBase = 0.15f;
 
+// MPU9250 yaw-rate axis and sign for the robot's forward-left-up frame.
+constexpr int imuYawRateAxis = 2;
+constexpr float imuYawRateSign = 1.0f;
+constexpr float radiansPerDegree = 0.017453292519943295f;
+
 // Control Mode
 constexpr ControlMode controlMode = ControlMode::ClosedLoop;
 
@@ -59,24 +64,24 @@ constexpr float turnRateIntegralGain =
 
 // Heading Controller (Lead Controller)
 constexpr bool headingControlEnabled = true;
-constexpr float headingKcGain = 6.0;
-constexpr float headingTauZ = 0.1;
-constexpr float headingTauP = 0.1;
+constexpr float headingKcGain = 9.85;
+constexpr float headingTauZ = 0.15;
+constexpr float headingTauP = 0.09;
 
 // Mission
 constexpr MissionType missionType = MissionType::CircularReturn;
 constexpr float missionDistance = 1.0f;
-constexpr float missionCruiseVelocity = 2.5f; // max 3 m/s
-constexpr float missionCurveVelocity = 0.7f;
+constexpr float missionCruiseVelocity = 1.0f; // max 3 m/s
+constexpr float missionCurveVelocity = 0.5f;
 constexpr float missionTurnRate = 1.0f;
 constexpr float openLoopMotorVoltage = 7.0f; // max 9V
 constexpr float firstStraightDistance = 1.0f;
 constexpr float circleRadius = 0.5f;
-constexpr float circleSweepAngleDegrees = 310.0f;
-constexpr float circleFinalHeadingOffsetDegrees = 1.0f;
+constexpr float circleSweepAngleDegrees = 325.1f;
+constexpr float circleFinalHeadingOffsetDegrees = 0.0f;
 constexpr float secondStraightDistance = 1.5f;
 constexpr float circleJoinBlendDistance = 0.2f;
-constexpr float circleExitBlendDistance = 0.5f;
+constexpr float circleExitBlendDistance = 0.2f;
 constexpr TurnDirection circleDirection = TurnDirection::Left;
 }
 

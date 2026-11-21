@@ -63,7 +63,7 @@ public:
   /**
    * Calibration handling */
   uint32_t gyroOffsetStartCnt = 1000;
-  bool     gyroOffsetDone;
+  bool     gyroOffsetDone = false;
   /**
    * Newest obtained gyro values
    * in degrees per second */

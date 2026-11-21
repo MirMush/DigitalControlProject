@@ -193,9 +193,17 @@ void updateMotionControl()
   if (!mission.isActive())
     return;
 
+  const bool gyroYawRateValid =
+      imu2.imuAvailable > 0 && imu2.gyroOffsetDone;
+  const float gyroYawRate =
+      RobotConfig::imuYawRateSign *
+      imu2.gyro[RobotConfig::imuYawRateAxis] *
+      RobotConfig::radiansPerDegree;
   pose.update(
       -encoder.motorVelocity[0] * RobotConfig::wheelRadius / RobotConfig::gearRatio,
-       encoder.motorVelocity[1] * RobotConfig::wheelRadius / RobotConfig::gearRatio);
+       encoder.motorVelocity[1] * RobotConfig::wheelRadius / RobotConfig::gearRatio,
+       gyroYawRate,
+       gyroYawRateValid);
 
   if (mission.usesDirectMotorVoltage())
   {

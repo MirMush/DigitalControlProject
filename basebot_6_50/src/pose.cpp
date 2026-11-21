@@ -22,10 +22,14 @@ PoseEstimator::PoseEstimator(
 
 void PoseEstimator::update(
     float leftWheelVelocity,
-    float rightWheelVelocity)
+    float rightWheelVelocity,
+    float gyroYawRate,
+    bool gyroYawRateValid)
 {
   forwardVel = (rightWheelVelocity + leftWheelVelocity) / 2.0f;
-  turnRateValue = (rightWheelVelocity - leftWheelVelocity) / wheelBase;
+  const float encoderTurnRate =
+      (rightWheelVelocity - leftWheelVelocity) / wheelBase;
+  turnRateValue = gyroYawRateValid ? gyroYawRate : encoderTurnRate;
 
   poseHeading = headingIntegrator.update(turnRateValue);
 
